@@ -1,0 +1,2 @@
+Use this folder to test python classes first before 
+integrating into the discord bot.

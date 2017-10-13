@@ -1,0 +1,1 @@
+{"users": {"chayuso#5309": {"reminders": {"10/14/2017-14:30:00": "Reminder..."}, "age": 0, "gender": "None", "weight": 0, "log_history": {"10/12/2017": {"log": "Entry text...", "push_ups": 0, "situps": 0, "miles": 0, "calories_lost": 0, "calorie_intake": 0}}, "bmi_result": "None", "height": 0, "nickname": "Chris", "discord_id": "chayuso#5309", "bmi": 0}}}
