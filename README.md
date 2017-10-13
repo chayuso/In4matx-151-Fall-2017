@@ -23,7 +23,9 @@
  https://github.com/Rapptz/discord.py
 #
  Copy into directory - (PythonLocation)\Python35\Lib\site-packages
- Can usually be found under 
+#
+Can usually be found under 
+#
  C:\Users\PC-Name\AppData\Local\Programs\Python\Python35\Lib\site-packages
 #
  Git
