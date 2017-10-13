@@ -69,13 +69,14 @@ class Database():
         """
         now = datetime.datetime.now()
         
-        temp_profile = '{"'+user_name+'":{"discord_id":"'+user_name+'","nickname":"'+user_name.split("#",1)[0]+'","weight":0,"height":0,"bmi_result":"None","gender":"None","bmi":0,"reminders":{},"log_history":{"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'":{"push_ups":0,"calorie_intake":0,"situps":0,"miles":0,"calories_lost":0,"log":"Entry text..."}},"age":0}}'
+        temp_profile = '{"'+user_name+'":{"discord_id":"'+user_name+'","nickname":"'+user_name.split("#",1)[0]+'","weight":0,"height":0,"bmi_result":"None","gender":"None","bmi":0,"reminders":[],"log_history":[{"calorie_intake":0,"calories_lost":0,"situps":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}],"age":0}}'
         json_dictionary = json.loads(temp_profile)
 
         self.data_list["users"].update(json_dictionary)
 
         self.write_json_database()
         self.write_bkup_database()
+        return 'User "'+user_name+'" added!'
 
     def remove_user(self, user_name:str):
         """
@@ -85,6 +86,32 @@ class Database():
         del self.data_list["users"][user_name]
         self.write_json_database()
         self.write_bkup_database()
+        return 'User "'+user_name+'" removed!'
+
+    def add_reminder(self, username:str,date:str, hour:str, minute:str,reminder:str):
+        """
+        Add a reminder note to database based on user.
+        """
+        R = {reminder:date+'-'+hour+':'+minute+':00'}
+        self.data_list["users"][username]["reminders"].append(R)
+
+        self.write_json_database()
+        self.write_bkup_database()
+        return "Reminder added!"
+
+    def remove_reminder(self, username:str,entry:int):
+        """
+        Removes entry by date or entry number
+        """
+        try:
+            del self.data_list["users"][username]["reminders"][entry]
+        except:
+            print("Entry index not valid.")
+            return "Invalid index"
+
+        self.write_json_database()
+        self.write_bkup_database()
+        return "Reminder removed!"
 
 if __name__ == '__main__':
     bot = Database("accounts")
@@ -92,3 +119,7 @@ if __name__ == '__main__':
     bot.add_user("Jeff")
     bot.add_user("CJ")
     bot.remove_user("Jeff")
+    bot.add_reminder("CJ","10/15/17","13","30","Go to ARC!!!...")
+    bot.add_reminder("CJ","10/13/17","12","30","Go 444 ARC!!!...")
+    bot.add_reminder("CJ","10/15/17","15","30","Go t2222!!!...")
+    bot.remove_reminder("CJ",1)
