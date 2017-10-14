@@ -59,9 +59,10 @@ class MusicBot(discord.Client):
         self.init_ok = False
         self.cached_client_id = None
 
+        #################################################################################
         self.database = Database("accounts")
         self.database.load_json_database()
-
+        #################################################################################
         # TODO: Do these properly
         ssd_defaults = {'last_np_msg': None, 'auto_paused': False}
         self.server_specific_data = defaultdict(lambda: dict(ssd_defaults))
@@ -416,11 +417,23 @@ class MusicBot(discord.Client):
 
         return Response(":mailbox_with_mail:", delete_after=20)
 
-
     async def cmd_restart(self, channel):
         await self.safe_send_message(channel, ":ok_hand:")
         raise exceptions.RestartSignal
 
+    async def cmd_restart(self, channel):
+        await self.safe_send_message(channel, ":ok_hand:")
+        raise exceptions.RestartSignal    
+
+####################################################################################
+    async def cmd_bmi(self, channel, message):
+        await self.send_file(channel,'images\BMI_Chart.jpg')
+
+    async def cmd_signup(self, channel, message):
+        print(message)
+        #return Response(self.database.add_user(), delete_after=0)
+    
+####################################################################################
     async def on_message(self, message):
         await self.wait_until_ready()
 
