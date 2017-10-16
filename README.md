@@ -3,6 +3,7 @@
 # Team Members
  Christopher Ayuso - cayuso@uci.edu
  Daniel Le - danienl1@uci.edu
+ Christopher Zhao - cjzhao@uci.edu
 #
  Edit the options.ini file under config folder
  replacing the bot token and userID
