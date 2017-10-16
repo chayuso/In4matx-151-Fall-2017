@@ -3,7 +3,11 @@
 # Team Members
  Christopher Ayuso - cayuso@uci.edu
  Daniel Le - danienl1@uci.edu
+<<<<<<< HEAD
  Kenny Matsudo - kmatsudo@uci.edu
+=======
+ Christopher Zhao - cjzhao@uci.edu
+>>>>>>> 06cc0bb44ec04d408d0b3d23f129db68dc66d134
 #
  Edit the options.ini file under config folder
  replacing the bot token and userID
