@@ -19,6 +19,7 @@ from io import BytesIO
 from functools import wraps
 from textwrap import dedent
 from datetime import timedelta
+from datetime import datetime
 from random import choice, shuffle
 from collections import defaultdict
 
@@ -62,6 +63,7 @@ class MusicBot(discord.Client):
         #################################################################################
         self.database = Database("accounts")
         self.database.load_json_database()
+
         #################################################################################
         # TODO: Do these properly
         ssd_defaults = {'last_np_msg': None, 'auto_paused': False}
@@ -70,7 +72,6 @@ class MusicBot(discord.Client):
         super().__init__()
         self.aiosession = aiohttp.ClientSession(loop=self.loop)
         self.http.user_agent += ' MusicBot/%s' % BOTVERSION
-
     # TODO: Add some sort of `denied` argument for a message to send when someone else tries to use it
     def owner_only(func):
         @wraps(func)
@@ -201,8 +202,8 @@ class MusicBot(discord.Client):
     # noinspection PyMethodOverriding
     def run(self):
         try:
+            self.loop.create_task(self.reminder_loop())
             self.loop.run_until_complete(self.start(*self.config.auth))
-
         except discord.errors.LoginFailure:
             # Add if token, else
             raise exceptions.HelpfulError(
@@ -430,9 +431,30 @@ class MusicBot(discord.Client):
         await self.send_file(channel,'images\BMI_Chart.jpg')
 
     async def cmd_signup(self, channel, message):
-        print(message)
+        print("s")
         #return Response(self.database.add_user(), delete_after=0)
-    
+
+    async def reminder_loop(self):
+        await self.wait_until_ready()
+        while not self.is_closed:
+            for user in self.database.data_list["users"]:#user is string
+                print("Checking User Reminders:"+user)
+                for reminder in self.database.data_list["users"][user]["reminders"]:#reminder is dictionary in reminders array
+                    date_now = str(datetime.now().month)+"/"+str(datetime.now().day)+"/"+str(datetime.now().year)
+                    time_now = str(datetime.now().hour)+":"+str(datetime.now().minute)
+                    print("Time:"+time_now)
+                    print("Set :"+reminder["reminder_time"])
+                    print(time_now == reminder["reminder_time"])
+                    if time_now == reminder["reminder_time"]: #if current time and current date
+                        print("Date:"+date_now)
+                        print("Set :"+reminder["reminder_date"])
+                        print(date_now == reminder["reminder_date"])
+                        if date_now == reminder["reminder_date"]:
+                            user_object = discord.User()
+                            user_object.name = self.database.data_list["users"][user]["discord_username"] #Username with #0000
+                            user_object.id = self.database.data_list["users"][user]["discord_id"] #ID Number
+                            await self.safe_send_message(user_object, reminder["reminder_name"])#Direct Message Reminder Name
+            await asyncio.sleep(60) #check every 60 secs
 ####################################################################################
     async def on_message(self, message):
         await self.wait_until_ready()
