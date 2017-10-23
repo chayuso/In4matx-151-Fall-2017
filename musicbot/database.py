@@ -76,6 +76,17 @@ class Database():
         self.write_bkup_database()
         return 'User "'+user_name+'" removed!'
 
+    def user_reminders(self,username:str):
+        """
+        Returns string of user reminders.
+        """
+        return_string="Reminder List for user "+username+":\n"
+        index = 1
+        for reminder in self.data_list["users"][username]["reminders"]:
+            return_string+="\nReminder #"+str(index)+":\n    name: "+reminder["reminder_name"]+"\n    date: "+reminder["reminder_date"]+"\n    time: "+reminder["reminder_time"]
+            index+=1
+        return return_string
+
     def add_reminder(self, username:str,date:str, hour:str, minute:str,reminder:str):
         """
         Add a reminder note to database based on user.
