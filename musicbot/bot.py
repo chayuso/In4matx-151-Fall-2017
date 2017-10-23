@@ -430,9 +430,35 @@ class MusicBot(discord.Client):
     async def cmd_bmi(self, channel, message):
         await self.send_file(channel,'images\BMI_Chart.jpg')
 
-    async def cmd_signup(self, channel, message):
-        print("s")
-        #return Response(self.database.add_user(), delete_after=0)
+    async def cmd_signup(self, author, message):
+        username =  author.name +"#"+author.discriminator
+        if username in self.database.data_list["users"].keys():
+            return Response('You have already registered! `%s`' % author.name, reply=True, delete_after=0)
+        else:
+            self.database.add_user(username,author.id)
+            return Response('Registration complete! `%s`' % author.name, reply=True, delete_after=0)
+
+    async def cmd_delete_account(self, author, message):
+        username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            return Response('You are not registered yet! `%s`' % author.name, reply=True, delete_after=0)
+        else:
+            self.database.remove_user(username)
+            return Response('Sucessfully deleted account! `%s`' % author.name, reply=True, delete_after=0)
+
+    async def cmd_reminder(self, author, message, leftover_args):
+        username =  author.name +"#"+author.discriminator
+        print(username)
+        print(message)
+        print(leftover_args)
+
+        def argcheck():
+            if not leftover_args:
+                raise exceptions.CommandError(self.database.user_reminders(username)+"\n\nReminder format.\n!reminder <name> <date> <time>\n    Example:\n    !reminder Go_to_arc! 4/5/2017 14:5")
+
+        argcheck()
+        self.database.add_reminder(username,leftover_args[1],leftover_args[2].split(":")[0],leftover_args[2].split(":")[1],leftover_args[0])
+        return Response('Sucessfully created reminder!\n    name: '+leftover_args[0]+"\n    date: "+leftover_args[1]+"\n    time: "+leftover_args[2], reply=True, delete_after=0)
 
     async def reminder_loop(self):
         await self.wait_until_ready()
