@@ -1,5 +1,6 @@
 import json
 import datetime
+from pytz import timezone
 
 ########################################
 #JSON to Dictionary example
@@ -67,7 +68,7 @@ class Database():
         Creates a basic template profile for a user using their username.
         Writes and backsup database.
         """
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(timezone('US/Pacific'))
         
         temp_profile = '{"'+user_name+'":{"discord_username":"'+user_name+'","discord_id":"'+user_id+'","nickname":"'+user_name.split("#",1)[0]+'","weight":0,"height":0,"bmi_result":"None","gender":"None","bmi":0,"reminders":[],"log_history":[{"calorie_intake":0,"calories_lost":0,"situps":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}],"age":0}}'
         json_dictionary = json.loads(temp_profile)
@@ -127,6 +128,9 @@ class Database():
     def print_database(self):
         print("Printing Database...\n################################################\n"+json.dumps(self.data_list,indent=4, sort_keys=True)+"\n################################################")
 
+    def print_pacific_time(self):
+        print(datetime.datetime.now(timezone('US/Pacific')))
+        
 if __name__ == '__main__':
     bot = Database("accounts")
     bot.load_json_database()
@@ -139,3 +143,4 @@ if __name__ == '__main__':
     bot.remove_reminder("CJ",1)
     bot.print_database()
     print(bot.user_reminders("CJ"))
+    bot.print_pacific_time()
