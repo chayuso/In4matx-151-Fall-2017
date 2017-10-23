@@ -36,6 +36,7 @@ from .constants import VERSION as BOTVERSION
 from .constants import DISCORD_MSG_CHAR_LIMIT, AUDIO_CACHE_PATH
 
 from musicbot.database import Database
+from pytz import timezone
 
 load_opus_lib()
 
@@ -466,8 +467,8 @@ class MusicBot(discord.Client):
             for user in self.database.data_list["users"]:#user is string
                 print("Checking User Reminders:"+user)
                 for reminder in self.database.data_list["users"][user]["reminders"]:#reminder is dictionary in reminders array
-                    date_now = str(datetime.now().month)+"/"+str(datetime.now().day)+"/"+str(datetime.now().year)
-                    time_now = str(datetime.now().hour)+":"+str(datetime.now().minute)
+                    date_now = str(datetime.now(timezone('US/Pacific')).month)+"/"+str(datetime.now(timezone('US/Pacific')).day)+"/"+str(datetime.now(timezone('US/Pacific')).year)
+                    time_now = str(datetime.now(timezone('US/Pacific')).hour)+":"+str(datetime.now(timezone('US/Pacific')).minute)
                     print("Time:"+time_now)
                     print("Set :"+reminder["reminder_time"])
                     print(time_now == reminder["reminder_time"])
