@@ -5,9 +5,7 @@
 audio_cache/
 dectalk/
 
-database/accounts.txt
-database/accounts_bk.txt
-python_class_testing/database/accounts.txt
-python_class_testing/database/accounts_bk.txt
+database/
+python_class_testing/database/
 
 discord.log
