@@ -1,5 +1,6 @@
 import json
 import datetime
+from pytz import timezone
 
 class Database():
     def __init__(self,database_file_name:str):
@@ -50,14 +51,14 @@ class Database():
         backup_file.close()
         self.write_bkup_database()
 
-    def add_user(self, user_name:str):
+    def add_user(self, user_name:str, user_id:str):
         """
         Creates a basic template profile for a user using their username.
         Writes and backsup database.
         """
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(timezone('US/Pacific'))
         
-        temp_profile = '{"'+user_name+'":{"discord_id":"'+user_name+'","nickname":"'+user_name.split("#",1)[0]+'","weight":0,"height":0,"bmi_result":"None","gender":"None","bmi":0,"reminders":[],"log_history":[{"calorie_intake":0,"calories_lost":0,"situps":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}],"age":0}}'
+        temp_profile = '{"'+user_name+'":{"discord_username":"'+user_name+'","discord_id":"'+user_id+'","nickname":"'+user_name.split("#",1)[0]+'","weight":0,"height":0,"bmi_result":"None","gender":"None","bmi":0,"reminders":[],"log_history":[{"calorie_intake":0,"calories_lost":0,"situps":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}],"age":0}}'
         json_dictionary = json.loads(temp_profile)
 
         self.data_list["users"].update(json_dictionary)
@@ -76,11 +77,22 @@ class Database():
         self.write_bkup_database()
         return 'User "'+user_name+'" removed!'
 
+    def user_reminders(self,username:str):
+        """
+        Returns string of user reminders.
+        """
+        return_string="Reminder List for user "+username+":\n"
+        index = 1
+        for reminder in self.data_list["users"][username]["reminders"]:
+            return_string+="\nReminder #"+str(index)+":\n    name: "+reminder["reminder_name"]+"\n    date: "+reminder["reminder_date"]+"\n    time: "+reminder["reminder_time"]
+            index+=1
+        return return_string
+
     def add_reminder(self, username:str,date:str, hour:str, minute:str,reminder:str):
         """
         Add a reminder note to database based on user.
         """
-        R = {reminder:date+'-'+hour+':'+minute+':00'}
+        R = {"reminder_name":reminder,"reminder_date":date,"reminder_time":hour+':'+minute}
         self.data_list["users"][username]["reminders"].append(R)
 
         self.write_json_database()
@@ -100,3 +112,9 @@ class Database():
         self.write_json_database()
         self.write_bkup_database()
         return "Reminder removed!"
+
+    def print_database(self):
+        print("Printing Database...\n################################################\n"+json.dumps(self.data_list,indent=4, sort_keys=True)+"\n################################################")
+
+    def print_pacific_time(self):
+        print(datetime.datetime.now(timezone('US/Pacific')))
