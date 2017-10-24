@@ -5,4 +5,7 @@
 audio_cache/
 dectalk/
 
+database/*
+python_class_testing/database/*
+
 discord.log
