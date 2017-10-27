@@ -1,18 +1,13 @@
 import json
-from datetime import datetime
+from pytz import timezone
+from datetime import datetime, timedelta
+import json
+import plotly
+import plotly.plotly as py
+from plotly.graph_objs import *
 from pytz import timezone
 
-########################################
-#JSON to Dictionary example
-jsonData = '{"name": "anivia","stats": {"health": 51.4,"health_regen": 0.651,"attack_dmg": 5.3,"armor": 2.09,"magic_resist": 3,"move_speed": 33,"mana": 33.4,"magic_dmg": 0,"mana_regen": 0.6,"critical": 0},"moves": {"passive": "Rebirth","q": "Flash Frost","w": "Crystallize","e": "Frostbite","r": "Glacial Storm"}}'
-jsonToPython = json.loads(jsonData)
-#print(jsonToPython["stats"]["health"])
-
-#Dictionary to JSON string example
-pythonDictionary = {'name':'Bob', 'age':44, 'isEmployed':True}
-dictionaryToJson = json.dumps(pythonDictionary)
-#print(dictionaryToJson)
-########################################
+plotly.tools.set_credentials_file(username='kmatsudo', api_key='En9O6dgqc7dXPsKdL2EY')
 
 class Database():
     def __init__(self,database_file_name:str):
@@ -131,17 +126,103 @@ class Database():
 
     def print_pacific_time(self):
         print(datetime.now(timezone('US/Pacific')))
+
+class Plotter():
+    def __init__(self,database):
         
-if __name__ == '__main__':
-    bot = Database("accounts")
-    bot.load_json_database()
-    #bot.add_user("Jeff","238420205104136203")
-    bot.add_user("CJ","238420205104136203")
-    #bot.remove_user("Jeff")
-    #bot.add_reminder("CJ","10/15/2017","13","30","Go to ARC!!!...")
-    #bot.add_reminder("CJ","10/13/2017","12","30","Go 444 ARC!!!...")
-    #bot.add_reminder("CJ","10/15/2017","15","30","Go t2222!!!...")
-    #bot.remove_reminder("CJ",1)
-    bot.print_database()
-    #print(bot.user_reminders("CJ"))
-    #bot.print_pacific_time()
+        self.local_database = database
+
+    def print_json(self):
+        pretty = (self.local_database.data_list)
+        print(json.dumps(pretty,indent=3))
+
+    def get_category_by_date(self,username:str,category:str,date:str):
+        """
+        Compatible with
+            "weight"
+            "miles"
+            "calorie_intake"
+            "calories_lost"
+            "push_ups"
+            "situps"
+        """
+        for log in self.local_database.data_list["users"][username]["log_history"]:
+            if date == log["date"]:
+                return log[category]
+        return "Category not found for date!"
+
+    def get_log_by_date(self,username,date):
+        for log in self.local_database.data_list["users"][username]["log_history"]:
+            if log["date"]==date:
+                return log
+        return None 
+
+    def set_category_today(self,username:str,category:str,value:int,test_mode=False,test_increment=0):
+        """
+        Compatible with
+            "weight"
+            "miles"
+            "calorie_intake"
+            "calories_lost"
+            "push_ups"
+            "situps"
+        """
+        last_log = self.local_database.data_list["users"][username]["log_history"][-1]
+        if test_mode: #testmode manually adds weight on incremented day
+            now = datetime.now(timezone('US/Pacific'))
+            now += timedelta(days=test_increment)
+            last_date = datetime.strptime(last_log["date"].replace("/","-"), '%m-%d-%Y')
+            if now.date()>last_date.date():
+                temp_log = '{"calorie_intake":0,"calories_lost":0,"situps":0,"weight":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
+                json_dictionary = json.loads(temp_log)
+                json_dictionary[category] = value
+                self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
+            else:
+                print("Don't add a previous day, creates out of order dates in list")
+        elif last_log["date"] == str(datetime.today().month)+"/"+str(datetime.today().day)+"/"+str(datetime.today().year):
+            last_log[category] = value
+        else:
+            now = datetime.now(timezone('US/Pacific'))
+            temp_log = '{"calorie_intake":0,"calories_lost":0,"situps":0,"weight":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
+            json_dictionary = json.loads(temp_log)
+            json_dictionary[category] = value
+            self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
+
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+    
+    def generate_chart(self,username:str, category:str,most_recent:int,test_num=0):
+        #test_num increments day of testing if added dates up to 86
+        #program will think to test up from most_recent until the tested increment
+        """
+        Compatible with
+            "weight"
+            "miles"
+            "calorie_intake"
+            "calories_lost"
+            "push_ups"
+            "situps"
+        """
+        date_list = []
+        weight_list = []
+        check_date = datetime.today()-timedelta(days=most_recent)+timedelta(days=test_num)
+        last_weight = 0
+        
+        for i in range(0,most_recent+1):
+            check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
+            log_entry = self.get_log_by_date(username,check_string)
+            if log_entry and log_entry[category]!=0 and category in log_entry.keys():
+                date_list.append(log_entry["date"])
+                weight_list.append(log_entry[category])
+                last_weight = log_entry[category]
+            else:
+                if last_weight != 0:
+                    date_list.append(check_string)
+                    weight_list.append(last_weight)
+            check_date += timedelta(days=1)
+        if not date_list:
+            return "Empty List"
+        py.image.save_as({
+            "data": [Scatter(x=date_list, y=weight_list)],
+            "layout": Layout(title=category.title()+"Graph")
+        },filename="plot_graphs/"+username+"_"+category+"_graph.png")
