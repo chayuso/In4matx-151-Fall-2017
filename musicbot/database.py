@@ -10,6 +10,7 @@ class Database():
         """
         self.data_list = {}
         self.database_name = database_file_name
+        self.load_json_database()
 
     def write_bkup_database(self):
         """

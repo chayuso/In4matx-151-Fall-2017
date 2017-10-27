@@ -22,6 +22,7 @@ class Database():
         """
         self.data_list = {}
         self.database_name = database_file_name
+        self.load_json_database()
 
     def write_bkup_database(self):
         """
@@ -134,13 +135,13 @@ class Database():
 if __name__ == '__main__':
     bot = Database("accounts")
     bot.load_json_database()
-    bot.add_user("Jeff","238420205104136203")
+    #bot.add_user("Jeff","238420205104136203")
     bot.add_user("CJ","238420205104136203")
-    bot.remove_user("Jeff")
-    bot.add_reminder("CJ","10/15/2017","13","30","Go to ARC!!!...")
-    bot.add_reminder("CJ","10/13/2017","12","30","Go 444 ARC!!!...")
-    bot.add_reminder("CJ","10/15/2017","15","30","Go t2222!!!...")
-    bot.remove_reminder("CJ",1)
+    #bot.remove_user("Jeff")
+    #bot.add_reminder("CJ","10/15/2017","13","30","Go to ARC!!!...")
+    #bot.add_reminder("CJ","10/13/2017","12","30","Go 444 ARC!!!...")
+    #bot.add_reminder("CJ","10/15/2017","15","30","Go t2222!!!...")
+    #bot.remove_reminder("CJ",1)
     bot.print_database()
-    print(bot.user_reminders("CJ"))
-    bot.print_pacific_time()
+    #print(bot.user_reminders("CJ"))
+    #bot.print_pacific_time()
