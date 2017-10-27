@@ -30,12 +30,11 @@ from musicbot.permissions import Permissions, PermissionsDefaults
 from musicbot.utils import load_file, write_file, sane_round_int
 
 from . import exceptions
-from . import downloader
 from .opus_loader import load_opus_lib
 from .constants import VERSION as BOTVERSION
 from .constants import DISCORD_MSG_CHAR_LIMIT, AUDIO_CACHE_PATH
 
-from musicbot.database import Database
+from musicbot.fitness_classes import Database,Plotter
 from pytz import timezone
 
 load_opus_lib()
@@ -63,8 +62,7 @@ class MusicBot(discord.Client):
 
         #################################################################################
         self.database = Database("accounts")
-        self.database.load_json_database()
-
+        self.plotter = Plotter(self.database)
         #################################################################################
         # TODO: Do these properly
         ssd_defaults = {'last_np_msg': None, 'auto_paused': False}
@@ -428,6 +426,42 @@ class MusicBot(discord.Client):
         raise exceptions.RestartSignal    
 
 ####################################################################################
+    async def cmd_log(self,channel, author, message, leftover_args):
+        username =  author.name +"#"+author.discriminator
+        print(username)
+        print(message)
+        print(leftover_args)
+
+        def argcheck():
+            if not leftover_args:
+                raise exceptions.CommandError(str(self.database.data_list["users"][username]["log_history"]))
+
+        argcheck()
+        self.plotter.set_category_today(username,leftover_args[0],float(leftover_args[1]))
+        date_now = str(datetime.now(timezone('US/Pacific')).month)+"/"+str(datetime.now(timezone('US/Pacific')).day)+"/"+str(datetime.now(timezone('US/Pacific')).year)
+        return Response('Sucessfully modified todays log!\n    Date: '+date_now+'\n    Category: '+leftover_args[0]+"\n    value: "+str(float(leftover_args[1])), reply=True, delete_after=0)
+
+    async def cmd_chart(self, channel, author, message, leftover_args):
+        username =  author.name +"#"+author.discriminator
+        print(username)
+        print(message)
+        print(leftover_args)
+
+        def argcheck():
+            if not leftover_args:
+                raise exceptions.CommandError("Enter Chart Category")
+
+        argcheck()
+        latest = 1
+        if len(leftover_args)==1:
+            latest = 10
+        else:
+            latest = int(leftover_args[1])
+        if self.plotter.generate_chart(username, leftover_args[0],latest) == "Empty List":
+            return Response("No data to Chart for Category: "+leftover_args[0], reply=True, delete_after=0)
+        else:
+            await self.send_file(channel,"plot_graphs/"+username+"_"+leftover_args[0]+"_graph.png")
+
     async def cmd_bmi(self, channel, message):
         await self.send_file(channel,'images\BMI_Chart.jpg')
 

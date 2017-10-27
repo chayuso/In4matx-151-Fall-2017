@@ -8,8 +8,6 @@ from pytz import timezone
 
 plotly.tools.set_credentials_file(username='kmatsudo', api_key='En9O6dgqc7dXPsKdL2EY')
 
-
-
 class Plotter():
     def __init__(self,database):
         
@@ -91,10 +89,10 @@ class Plotter():
         check_date = datetime.today()-timedelta(days=most_recent)+timedelta(days=test_num)
         last_weight = 0
         
-        for i in range(0,most_recent):
+        for i in range(0,most_recent+1):
             check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
             log_entry = self.get_log_by_date(username,check_string)
-            if log_entry and log_entry[category]!=0:
+            if log_entry and log_entry[category]!=0 and category in log_entry.keys():
                 date_list.append(log_entry["date"])
                 weight_list.append(log_entry[category])
                 last_weight = log_entry[category]
@@ -125,20 +123,21 @@ if __name__ == "__main__":
     #Was first tested with "weight" category, then switched to situps to
     #Check Compatability
     heller.local_database.add_user("CJ","238420205104136203")#Resets CJ User even if already in database
+    print(heller.generate_chart("CJ","situps",100,86))
     heller.set_category_today("CJ","situps",150)
-    heller.set_category_today("CJ","situps",156,True,3)
-    heller.set_category_today("CJ","situps",170,True,10)
-    heller.set_category_today("CJ","situps",160,True,15)
-    heller.set_category_today("CJ","situps",165,True,53)
-    heller.set_category_today("CJ","situps",155,True,63)
-    heller.set_category_today("CJ","situps",148,True,73)
-    heller.set_category_today("CJ","situps",160,True,76)
-    heller.set_category_today("CJ","situps",163,True,84)
-    heller.set_category_today("CJ","situps",180,True,86)
+    #heller.set_category_today("CJ","situps",156,True,3)
+    #heller.set_category_today("CJ","situps",170,True,10)
+    #heller.set_category_today("CJ","situps",160,True,15)
+    #heller.set_category_today("CJ","situps",165,True,53)
+    #heller.set_category_today("CJ","situps",155,True,63)
+    #heller.set_category_today("CJ","situps",148,True,73)
+    #heller.set_category_today("CJ","situps",160,True,76)
+    #heller.set_category_today("CJ","situps",163,True,84)
+    #heller.set_category_today("CJ","situps",180,True,86)
 
     heller.print_json()
-    print(heller.generate_chart("CJ","situps",100,86))
-    print(heller.generate_chart("chayuso#5309","situps",100))
-    print(heller.get_category_by_date("CJ","situps","10/26/2017"))
+    print(heller.generate_chart("CJ","situps",100))
+    #print(heller.generate_chart("chayuso#5309","situps",100))
+    #print(heller.get_category_by_date("CJ","situps","10/26/2017"))
 
 
