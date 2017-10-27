@@ -7,30 +7,31 @@ class Test():
         self.database = database
         self.workout_dict = {"excercise": None, "reps": None, "sets": None, "weight": None}
         self.workout_list = []
+        self.workout_counter = 0
 
+        
+    def record_workout(self):
+        self.workout_list.append(self.workout_dict)
+        self.workout_counter += 1
+        print("Workout " + str(self.workout_counter) +" added to list")
+        print(self.workout_list)
 
-    def print_age(self,username):
-        print(self.database.data_list["users"][username]["age"])
         
-        
-    def record_workout(self, workout_dict, workout):
-        pass
     
     def add_excercise(self, excercise):
         self.workout_dict["excercise"] = excercise
-        print(self.workout_dict)
         
     def add_weight(self, weight):
         self.workout_dict["weight"] = weight 
-        print("Logged " + str(weight) + " pounds to this workout")
+        print("Logged " + str(weight) + " pounds to " + self.workout_dict["excercise"] + " workout")
         
     def add_sets(self, sets):
         self.workout_dict["sets"] = sets 
-        print("Logged " + str(sets) + " sets to this workout")
+        print("Logged " + str(sets) + " sets to " + self.workout_dict["excercise"] + " workout")
 
     def add_reps(self, reps):
         self.workout_dict["reps"] = reps
-        print("Logged " + str(reps) + " reps to this workout")
+        print("Logged " + str(reps) + " reps to " + self.workout_dict["excercise"] + " workout")
 
 
 if __name__ == '__main__':
@@ -44,12 +45,21 @@ if __name__ == '__main__':
     bot.add_reps(10)
     bot.add_sets(3)
     bot.add_weight(150)
-    print()
-    for k in bot.workout_dict.items():
-        print(k)
 
+    #print(bot.workout_dict)
+    
+    bot.record_workout()
     print()
-    print(bot.workout_dict)
+    
+    bot.add_excercise("Chest Press")
+    bot.add_reps(8)
+    bot.add_sets(4)
+    bot.add_weight(150)
+    
+    
+    bot.record_workout()
+    print()
+    
 
     
     for k,v in database_object.data_list.items(): #users dict
@@ -57,14 +67,9 @@ if __name__ == '__main__':
             for user,userinfo in v.items(): #userinfo type dict
                 for item in userinfo["log_history"]:
                     for i in item:
-                        if i == "log" and user == "Daniel":
+                        if i == "log":
                             print("hi")
                         
                         
                 
-#                if user == "Daniel":
- ##                      if item == "log_history":
-   #                         print(userinfo)
 
-
-    
