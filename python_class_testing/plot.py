@@ -49,6 +49,7 @@ class Plotter():
             "situps"
         """
         last_log = self.local_database.data_list["users"][username]["log_history"][-1]
+        now = datetime.now(timezone('US/Pacific'))
         if test_mode: #testmode manually adds weight on incremented day
             now = datetime.now(timezone('US/Pacific'))
             now += timedelta(days=test_increment)
@@ -60,10 +61,9 @@ class Plotter():
                 self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
             else:
                 print("Don't add a previous day, creates out of order dates in list")
-        elif last_log["date"] == str(datetime.today().month)+"/"+str(datetime.today().day)+"/"+str(datetime.today().year):
+        elif last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
             last_log[category] = value
         else:
-            now = datetime.now(timezone('US/Pacific'))
             temp_log = '{"calorie_intake":0,"calories_lost":0,"situps":0,"weight":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
             json_dictionary = json.loads(temp_log)
             json_dictionary[category] = value
@@ -86,7 +86,7 @@ class Plotter():
         """
         date_list = []
         weight_list = []
-        check_date = datetime.today()-timedelta(days=most_recent)+timedelta(days=test_num)
+        check_date = datetime.now(timezone('US/Pacific'))-timedelta(days=most_recent)+timedelta(days=test_num)
         last_weight = 0
         
         for i in range(0,most_recent+1):
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     heller.local_database.add_user("CJ","238420205104136203")#Resets CJ User even if already in database
     print(heller.generate_chart("CJ","situps",100,86))
     heller.set_category_today("CJ","situps",150)
-    #heller.set_category_today("CJ","situps",156,True,3)
-    #heller.set_category_today("CJ","situps",170,True,10)
+    heller.set_category_today("CJ","situps",156,True,3)
+    heller.set_category_today("CJ","situps",170,True,10)
     #heller.set_category_today("CJ","situps",160,True,15)
     #heller.set_category_today("CJ","situps",165,True,53)
     #heller.set_category_today("CJ","situps",155,True,63)

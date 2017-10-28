@@ -168,21 +168,10 @@ class Plotter():
             "situps"
         """
         last_log = self.local_database.data_list["users"][username]["log_history"][-1]
-        if test_mode: #testmode manually adds weight on incremented day
-            now = datetime.now(timezone('US/Pacific'))
-            now += timedelta(days=test_increment)
-            last_date = datetime.strptime(last_log["date"].replace("/","-"), '%m-%d-%Y')
-            if now.date()>last_date.date():
-                temp_log = '{"calorie_intake":0,"calories_lost":0,"situps":0,"weight":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
-                json_dictionary = json.loads(temp_log)
-                json_dictionary[category] = value
-                self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
-            else:
-                print("Don't add a previous day, creates out of order dates in list")
-        elif last_log["date"] == str(datetime.today().month)+"/"+str(datetime.today().day)+"/"+str(datetime.today().year):
+        now = datetime.now(timezone('US/Pacific'))
+        if last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
             last_log[category] = value
         else:
-            now = datetime.now(timezone('US/Pacific'))
             temp_log = '{"calorie_intake":0,"calories_lost":0,"situps":0,"weight":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
             json_dictionary = json.loads(temp_log)
             json_dictionary[category] = value
@@ -205,7 +194,7 @@ class Plotter():
         """
         date_list = []
         weight_list = []
-        check_date = datetime.today()-timedelta(days=most_recent)+timedelta(days=test_num)
+        check_date = datetime.now(timezone('US/Pacific'))-timedelta(days=most_recent)+timedelta(days=test_num)
         last_weight = 0
         
         for i in range(0,most_recent+1):

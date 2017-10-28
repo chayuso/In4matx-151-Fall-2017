@@ -36,6 +36,7 @@ from .constants import DISCORD_MSG_CHAR_LIMIT, AUDIO_CACHE_PATH
 
 from musicbot.fitness_classes import Database,Plotter
 from pytz import timezone
+import json
 
 load_opus_lib()
 
@@ -421,20 +422,23 @@ class MusicBot(discord.Client):
         await self.safe_send_message(channel, ":ok_hand:")
         raise exceptions.RestartSignal
 
-    async def cmd_restart(self, channel):
-        await self.safe_send_message(channel, ":ok_hand:")
-        raise exceptions.RestartSignal    
+    async def cmd_shutdown(self, channel):
+        await self.safe_send_message(channel, ":wave:")
+        raise exceptions.TerminateSignal
 
 ####################################################################################
     async def cmd_log(self,channel, author, message, leftover_args):
         username =  author.name +"#"+author.discriminator
-        print(username)
-        print(message)
-        print(leftover_args)
 
         def argcheck():
             if not leftover_args:
-                raise exceptions.CommandError(str(self.database.data_list["users"][username]["log_history"]))
+                check_date = datetime.now(timezone('US/Pacific'))
+                check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
+                latest_log = self.plotter.get_log_by_date(username,check_string)
+                if not latest_log:
+                    raise exceptions.CommandError("No log inputted for today!")
+                else:
+                    raise exceptions.CommandError("Latest Log:\n"+str(json.dumps(latest_log)))
 
         argcheck()
         self.plotter.set_category_today(username,leftover_args[0],float(leftover_args[1]))
@@ -443,9 +447,6 @@ class MusicBot(discord.Client):
 
     async def cmd_chart(self, channel, author, message, leftover_args):
         username =  author.name +"#"+author.discriminator
-        print(username)
-        print(message)
-        print(leftover_args)
 
         def argcheck():
             if not leftover_args:
@@ -483,9 +484,6 @@ class MusicBot(discord.Client):
 
     async def cmd_reminder(self, author, message, leftover_args):
         username =  author.name +"#"+author.discriminator
-        print(username)
-        print(message)
-        print(leftover_args)
 
         def argcheck():
             if not leftover_args:
@@ -499,17 +497,10 @@ class MusicBot(discord.Client):
         await self.wait_until_ready()
         while not self.is_closed:
             for user in self.database.data_list["users"]:#user is string
-                print("Checking User Reminders:"+user)
                 for reminder in self.database.data_list["users"][user]["reminders"]:#reminder is dictionary in reminders array
                     date_now = str(datetime.now(timezone('US/Pacific')).month)+"/"+str(datetime.now(timezone('US/Pacific')).day)+"/"+str(datetime.now(timezone('US/Pacific')).year)
                     time_now = str(datetime.now(timezone('US/Pacific')).hour)+":"+str(datetime.now(timezone('US/Pacific')).minute)
-                    print("Time:"+time_now)
-                    print("Set :"+reminder["reminder_time"])
-                    print(time_now == reminder["reminder_time"])
                     if time_now == reminder["reminder_time"]: #if current time and current date
-                        print("Date:"+date_now)
-                        print("Set :"+reminder["reminder_date"])
-                        print(date_now == reminder["reminder_date"])
                         if date_now == reminder["reminder_date"]:
                             user_object = discord.User()
                             user_object.name = self.database.data_list["users"][user]["discord_username"] #Username with #0000
