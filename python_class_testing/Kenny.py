@@ -10,7 +10,7 @@ plotly.tools.set_credentials_file(username='kmatsudo', api_key='En9O6dgqc7dXPsKd
 
 class Prototype:
     def __init__(self):
-        
+        ## Keeps creating a new instance of "Kenny" instead of adding on to it
         self.local_database = Database("accounts")
         self.local_database.load_json_database()
         self.local_database.add_user("kenny",str(4056));
@@ -79,6 +79,7 @@ class Prototype:
     def get_bmi(self,name):
 
         weight = int(self.get_weight(name))
+        # Spits the height (its a string) into an array[0] = ft , array[1] = inches
         string_height = self.get_height(name).split("'")
         ft_in_inches = int(string_height[0]) * 12
         total_height = ft_in_inches + int(string_height[1])
@@ -88,15 +89,12 @@ class Prototype:
         return bmi
 
         
-        
-        
-
-
     
     ############ LOG HISTORY FUNCTIONS ############
         
     def set_log(self,name,attribute,value):
-        #sets the latest log entry's attribute to a value.                
+        #sets the latest log entry's attribute to a value.
+        #example, set_log("kenny","weight",1000000)  
         self.local_database.data_list["users"][name]["log_history"][0][attribute] = value
         if attribute == "weight":
             self.set_weight(name,value)
