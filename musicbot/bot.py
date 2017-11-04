@@ -34,7 +34,7 @@ from .opus_loader import load_opus_lib
 from .constants import VERSION as BOTVERSION
 from .constants import DISCORD_MSG_CHAR_LIMIT, AUDIO_CACHE_PATH
 
-from musicbot.fitness_classes import Database,Plotter
+from musicbot.fitness_classes import Database,Plotter,BMI_Calculator
 from pytz import timezone
 import json
 
@@ -64,6 +64,7 @@ class MusicBot(discord.Client):
         #################################################################################
         self.database = Database("accounts")
         self.plotter = Plotter(self.database)
+        self.bmi_calculator = BMI_Calculator(self.database)
         #################################################################################
         # TODO: Do these properly
         ssd_defaults = {'last_np_msg': None, 'auto_paused': False}
@@ -443,6 +444,8 @@ class MusicBot(discord.Client):
         argcheck()
         self.plotter.set_category_today(username,leftover_args[0],float(leftover_args[1]))
         date_now = str(datetime.now(timezone('US/Pacific')).month)+"/"+str(datetime.now(timezone('US/Pacific')).day)+"/"+str(datetime.now(timezone('US/Pacific')).year)
+        if leftover_args[0] == "weight":
+            self.bmi_calculator.set_weight(username,float(leftover_args[1]))
         return Response('Sucessfully modified todays log!\n    Date: '+date_now+'\n    Category: '+leftover_args[0]+"\n    value: "+str(float(leftover_args[1])), reply=True, delete_after=0)
 
     async def cmd_chart(self, channel, author, message, leftover_args):
@@ -463,8 +466,27 @@ class MusicBot(discord.Client):
         else:
             await self.send_file(channel,"plot_graphs/"+username+"_"+leftover_args[0]+"_graph.png")
 
-    async def cmd_bmi(self, channel, message):
+    async def cmd_height(self, author, channel, message, leftover_args):
+        username =  author.name +"#"+author.discriminator
+        
+        def argcheck():
+            if not leftover_args:
+                raise exceptions.CommandError("Enter height with {'} seperator:\n!height 1'2")
+
+        argcheck()
+        self.bmi_calculator.set_height(username, leftover_args[0])
+        return Response('Sucessfully modified user height!\n    Height: '+leftover_args[0], reply=True, delete_after=0)
+
+        
+    async def cmd_bmi(self, author, channel, message):
+        username =  author.name +"#"+author.discriminator
+        bmi = self.bmi_calculator.get_bmi(username)
+        if bmi == -1:
+            return Response('No weight value on recorded!\nUse !log weight # to record your most recent weight.', reply=True, delete_after=0)
+        elif bmi == 0:
+            return Response("No height value on record!\nUser !height 1'2 to record your most recent height")
         await self.send_file(channel,'images\BMI_Chart.jpg')
+        return Response('Your bmi score is:\n'+ str(bmi)+"\nweight: "+str(self.bmi_calculator.get_weight(username))+"\nheight: "+str(self.bmi_calculator.get_height(username)), reply=True, delete_after=0)
 
     async def cmd_signup(self, author, message):
         username =  author.name +"#"+author.discriminator

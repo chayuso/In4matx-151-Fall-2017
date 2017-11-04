@@ -126,7 +126,93 @@ class Database():
 
     def print_pacific_time(self):
         print(datetime.now(timezone('US/Pacific')))
+        
+class BMI_Calculator():
+    def __init__(self,database):
+        ## Keeps creating a new instance of "Kenny" instead of adding on to it
+        self.local_database = database
+        
+############ GENERAL FUNCTIONS ############
+    #------ Weight ------# 
 
+    def get_weight(self,name):
+        #print(self.local_database.data_list["users"][name]["weight"])
+        return(self.local_database.data_list["users"][name]["weight"])
+
+    def set_weight(self,name,weight):
+        #gets current height (only gets weight from log_history"
+        self.local_database.data_list["users"][name]["weight"] = weight
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+        
+
+     #------ Height ------# 
+               
+
+    def get_height(self,name):
+        #print(self.local_database.data_list["users"][name]["height"])
+        return(self.local_database.data_list["users"][name]["height"])
+
+
+    def set_height(self,name,height):
+        #gets current height (only gets weight from log_history"
+        self.local_database.data_list["users"][name]["height"] = height
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+
+        
+    #------ Gender ------# 
+
+    def get_gender(self,name):
+        #print(self.local_database.data_list["users"][name]["gender"])
+        return(self.local_database.data_list["users"][name]["gender"])
+
+    
+    def set_gender(self,name,gender):
+        #gets current height (only gets weight from log_history"
+        self.local_database.data_list["users"][name]["gender"] = gender
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+
+
+    #------ Age ------# 
+
+
+    def get_age(self,name):
+        #print(self.local_database.data_list["users"][name]["age"])
+        return(self.local_database.data_list["users"][name]["age"])
+
+    
+    def set_age(self,name,age):
+        #gets current height (only gets weight from log_history"
+        self.local_database.data_list["users"][name]["age"] = age
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+
+        
+    #------ BMI ------# 
+
+    # Gets the weight and height from the profile and calculates BMI.
+
+    def get_bmi(self,name):
+
+        weight = float(self.get_weight(name))
+        if weight == 0:
+            return -1
+        # Spits the height (its a string) into an array[0] = ft , array[1] = inches
+        try:
+            self.get_height(name).split("'")
+        except:
+            return 0
+        
+        string_height = self.get_height(name).split("'")
+        ft_in_inches = int(string_height[0]) * 12
+        total_height = ft_in_inches + int(string_height[1])
+
+        bmi = ( weight / (total_height * total_height)) * 703
+        print("BMI: " + str(bmi))
+        return bmi
+    
 class Plotter():
     def __init__(self,database):
         
@@ -200,7 +286,7 @@ class Plotter():
         for i in range(0,most_recent+1):
             check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
             log_entry = self.get_log_by_date(username,check_string)
-            if log_entry and log_entry[category]!=0 and category in log_entry.keys():
+            if log_entry and category in log_entry.keys() and log_entry[category]!=0:
                 date_list.append(log_entry["date"])
                 weight_list.append(log_entry[category])
                 last_weight = log_entry[category]
