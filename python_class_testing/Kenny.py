@@ -44,7 +44,29 @@ class Prototype:
 
     def set_height(self,name,height):
         #gets current height (only gets weight from log_history"
+            
         self.local_database.data_list["users"][name]["height"] = height
+
+    def set_height_input(self):
+        name = input("Name of Person Modifying")
+
+        try:
+            self.local_database.data_list["users"][name]
+        except:
+            print("User does not exist!")
+
+        while(True):
+            height = input("Please enter your current height: ")
+            if(height[1] != "'"):
+                print("Please enter a valid format! 5'6 ")
+            if(int(height[2:]) > 12):
+                print("Inches must be less than 12!")
+            else:
+                self.local_database.data_list["users"][name]["height"] = height
+                break
+        
+
+        
 
         
     #------ Gender ------# 
@@ -119,6 +141,8 @@ if __name__ == "__main__":
     heller.set_log("kenny","situps",100)
     heller.set_log("kenny","calorie_intake",3000)
     heller.set_log("kenny","log","Today I am hungry!")
+
+    heller.set_height_input()
 
     heller.print_json()
 
