@@ -531,6 +531,44 @@ class MusicBot(discord.Client):
                             await self.safe_send_message(user_object, reminder["reminder_name"])#Direct Message Reminder Name
             await asyncio.sleep(60) #check every 60 secs
 
+    async def cmd_remove_category(self, author, message,channel):
+        username =  author.name +"#"+author.discriminator
+        confirm_msg = await self.safe_send_message(channel, "Reply with emoji workout")
+        response_msg = await self.wait_for_message(30, author=author, channel=channel)
+        if not response_msg:
+            await self.safe_delete_message(confirm_msg)
+            return Response("Ok nevermind.", delete_after=30)
+        if "emoji_workouts" in self.database.data_list["users"][username]:
+            del self.database.data_list["users"][username]["emoji_workouts"][response_msg.content[0]]
+        else:
+            return Response('No custom workouts logged!', reply=True, delete_after=0)       
+        self.database.write_json_database()
+        self.database.write_bkup_database()
+        await self.safe_send_message(channel, "Success!")
+        
+    async def cmd_add_category(self, author, message,channel):
+        username =  author.name +"#"+author.discriminator
+        confirm_msg = await self.safe_send_message(channel, "Reply with category name")
+        response_msg = await self.wait_for_message(30, author=author, channel=channel)
+        if not response_msg:
+            await self.safe_delete_message(confirm_msg)
+            return Response("Ok nevermind.", delete_after=30)
+        confirm_emoji =await self.safe_send_message(channel, "Reply with emoji")
+        response_emoji = await self.wait_for_message(30, author=author, channel=channel)
+        if not response_emoji:
+            await self.safe_delete_message( confirm_emoji)
+            return Response("Ok nevermind.", delete_after=30)
+        
+        if "emoji_workouts" in self.database.data_list["users"][username]:
+            self.database.data_list["users"][username]["emoji_workouts"][response_emoji.content[0]]=response_msg.content.split(" ")[0].lower()
+        else:
+            self.database.data_list["users"][username]["emoji_workouts"] = {}
+            self.database.data_list["users"][username]["emoji_workouts"][response_emoji.content[0]]=response_msg.content.split(" ")[0].lower()
+        
+        self.database.write_json_database()
+        self.database.write_bkup_database()
+        await self.safe_send_message(channel, "Success!")
+        
     async def cmd_emoji(self, author, message,channel):
         username =  author.name +"#"+author.discriminator
         botmsg = await self.send_message(message.channel,"Log Workout with Reaction:\nValue: ")
@@ -554,19 +592,30 @@ class MusicBot(discord.Client):
                 bot_object.id = "368455430814564372"
                 try:
                     temp_str = reaction.emoji.name
-                    if reaction.emoji.name == "sit_ups" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.send_message(msg.channel,"sit ups")
-                        await self.remove_reaction(msg,reaction.emoji,user)
-                    elif reaction.emoji.name == "push_ups" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.send_message(msg.channel,"push ups")
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                    for i in self.get_all_emojis():
+                        if reaction.emoji.name == "period":
+                            await self.edit_message(msg,msg.content+".")
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                            break
+                        elif reaction.emoji.name == i.name:
+                            await self.send_message(msg.channel,reaction.emoji.name)
+                            await self.remove_reaction(msg,reaction.emoji,user)
                 except:
                     temp_str = reaction.emoji
                 finally:
+                    if "emoji_workouts" in self.database.data_list["users"][username]:
+                        for i in self.database.data_list["users"][username]["emoji_workouts"]:
+                            if reaction.emoji == str(i) and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                                await self.send_message(msg.channel,self.database.data_list["users"][username]["emoji_workouts"][i])
+                                await self.remove_reaction(msg,reaction.emoji,user)
                     if reaction.emoji == "💪" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.add_reaction(msg,"🏃")
                         for i in self.get_all_emojis():
-                            await self.add_reaction(msg,i)
+                            if i.name != "period":
+                                await self.add_reaction(msg,i)
+                        if "emoji_workouts" in self.database.data_list["users"][username]:
+                            for i in self.database.data_list["users"][username]["emoji_workouts"]:
+                                await self.add_reaction(msg,i)
                     elif reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.add_reaction(msg,"1⃣")
                         await self.add_reaction(msg,"2⃣")
@@ -578,6 +627,9 @@ class MusicBot(discord.Client):
                         await self.add_reaction(msg,"8⃣")
                         await self.add_reaction(msg,"9⃣")
                         await self.add_reaction(msg,"0⃣")
+                        for i in self.get_all_emojis():
+                            if i.name == "period":
+                                await self.add_reaction(msg,i)
                     elif reaction.emoji == "🏃" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.send_message(msg.channel,"miles")
                         await self.remove_reaction(msg,reaction.emoji,user)
@@ -640,7 +692,11 @@ class MusicBot(discord.Client):
                     if reaction.emoji == "💪" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.remove_reaction(msg,"🏃",bot_object)
                         for i in self.get_all_emojis():
-                            await self.remove_reaction(msg,i,bot_object)
+                            if i.name != "period":
+                                await self.remove_reaction(msg,i,bot_object)
+                        if "emoji_workouts" in self.database.data_list["users"][username]:
+                            for i in self.database.data_list["users"][username]["emoji_workouts"]:
+                                await self.remove_reaction(msg,str(i),bot_object)
                     elif reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.remove_reaction(msg,"1⃣",bot_object)
                         await self.remove_reaction(msg,"1⃣",bot_object)
@@ -653,6 +709,9 @@ class MusicBot(discord.Client):
                         await self.remove_reaction(msg,"8⃣",bot_object)
                         await self.remove_reaction(msg,"9⃣",bot_object)
                         await self.remove_reaction(msg,"0⃣",bot_object)
+                        for i in self.get_all_emojis():
+                            if i.name == "period":
+                                await self.remove_reaction(msg,i,bot_object)
 ####################################################################################
     async def on_message(self, message):
         await self.wait_until_ready()
