@@ -600,13 +600,19 @@ class MusicBot(discord.Client):
                         if reaction.emoji.name == "period":
                             if "." not in msg.content.split(":")[-1]:
                                 await self.edit_message(msg,msg.content+".")
-                            await self.remove_reaction(msg,reaction.emoji,user)
+                            try:
+                                await self.remove_reaction(msg,reaction.emoji,user)
+                            except:
+                                print("Can't auto remove emoji")
                             break
                         elif reaction.emoji.name == i.name:
                             edit_string = msg.content.split("\n")
                             new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+reaction.emoji.name+"\n"+edit_string[2]
                             await self.edit_message(msg,new_string)
-                            await self.remove_reaction(msg,reaction.emoji,user)
+                            try:
+                                await self.remove_reaction(msg,reaction.emoji,user)
+                            except:
+                                print("Can't auto remove emoji")
                 except:
                     temp_str = reaction.emoji
                 finally:
@@ -616,7 +622,10 @@ class MusicBot(discord.Client):
                                 edit_string = msg.content.split("\n")
                                 new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+self.database.data_list["users"][username]["emoji_workouts"][i]+"\n"+edit_string[2]
                                 await self.edit_message(msg,new_string)
-                                await self.remove_reaction(msg,reaction.emoji,user)
+                                try:
+                                    await self.remove_reaction(msg,reaction.emoji,user)
+                                except:
+                                    print("Can't auto remove emoji")
                     if reaction.emoji == "💪" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.add_reaction(msg,"⚖")
                         await self.add_reaction(msg,"📏")
@@ -648,7 +657,10 @@ class MusicBot(discord.Client):
                             await self.safe_delete_message(confirm_msg)
                             await self.send_message(msg.channel,'Invalid Response')
                         finally:
-                            await self.remove_reaction(msg,reaction.emoji,user)
+                            try:
+                                await self.remove_reaction(msg,reaction.emoji,user)
+                            except:
+                                print("Can't auto remove emoji")
                     elif reaction.emoji == "🗂" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         await self.add_reaction(msg,"📋")
                         await self.add_reaction(msg,"📈")
@@ -661,7 +673,10 @@ class MusicBot(discord.Client):
                             await self.send_message(msg.channel,'```No log inputted for today!```')
                         else:
                             await self.send_message(msg.channel,'```Latest Log:\n'+str(json.dumps(latest_log))+'```')
-                        await self.remove_reaction(msg,reaction.emoji,user)        
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")       
                     elif reaction.emoji == "📈" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         category = edit_string[1].split(":")[1].strip()
@@ -676,7 +691,10 @@ class MusicBot(discord.Client):
                             await self.send_message(msg.channel,'```No data to Chart for Category: "'+category+'"```')
                         else:
                             await self.send_file(msg.channel,"plot_graphs/"+username+"_"+category+"_graph.png")
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "📊" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         bmi = self.bmi_calculator.get_bmi(username)
                         if bmi == -1:
@@ -686,47 +704,73 @@ class MusicBot(discord.Client):
                         else:
                             await self.send_file(msg.channel,'images\BMI_Chart.jpg')
                             await self.send_message(msg.channel,'Your bmi score is:\n'+ str(bmi)+"\nweight: "+str(self.bmi_calculator.get_weight(username))+"\nheight: "+str(self.bmi_calculator.get_height(username)))
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.remove_reaction(msg,reaction.emoji,user)
                         await self.cmd_emoji(user, msg,chat)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "🏃" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"miles\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "👟" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"steps\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "⚖" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"weight\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "📏" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"height\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "🛌" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"sleep\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "🍽" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"calorie_intake\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "🔥" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
                         edit_string = msg.content.split("\n")
                         new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"calorie_burn\n"+edit_string[2]
                         await self.edit_message(msg,new_string)
-                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                     elif reaction.emoji == "☑" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.remove_reaction(msg,reaction.emoji,user)
                         try:
                             edit_string = msg.content.split("\n")
                             category = edit_string[1].split(":")[1].strip()
@@ -743,7 +787,10 @@ class MusicBot(discord.Client):
                                 await self.send_message(msg.channel,'Sucessfully modified todays log!\n    Date: '+date_now+'\n    Category: '+category+"\n    value: "+str(value))
                         except:
                             await self.send_message(msg.channel,'Could not modify log! Check format')
-
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
                         
     async def on_reaction_remove(self,reaction,user):
         username =user.name +"#"+user.discriminator
