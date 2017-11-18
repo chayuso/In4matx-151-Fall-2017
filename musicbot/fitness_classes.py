@@ -258,7 +258,7 @@ class Plotter():
         if last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
             last_log[category] = value
         else:
-            temp_log = '{"calorie_intake":0,"calories_lost":0,"situps":0,"weight":0,"miles":0,"log":"Entry text...","push_ups":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
+            temp_log = '{"calorie_intake":0,"calorie_burn":0,"miles":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
             json_dictionary = json.loads(temp_log)
             json_dictionary[category] = value
             self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
