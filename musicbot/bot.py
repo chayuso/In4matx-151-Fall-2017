@@ -571,15 +571,19 @@ class MusicBot(discord.Client):
         
     async def cmd_emoji(self, author, message,channel):
         username =  author.name +"#"+author.discriminator
-        botmsg = await self.send_message(message.channel,"Log Workout with Reaction:\nValue: ")
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
+        botmsg = await self.send_message(message.channel,"Log Workout with Reaction:\nCategory:\nValue: ")
         self.database.data_list["users"][username]["emoji_log"] = botmsg.id;
         self.database.write_json_database()
         self.database.write_bkup_database()
         await self.add_reaction(botmsg,"🔢")
-        await self.add_reaction(botmsg,"⬅")
+        #await self.add_reaction(botmsg,"⬅")
         await self.add_reaction(botmsg,"💪")
-        await self.add_reaction(botmsg,"👍")
-        
+        await self.add_reaction(botmsg,"🗂")
+        await self.add_reaction(botmsg,"☑")
+        await self.add_reaction(botmsg,"🔄")
+
     async def on_reaction_add(self,reaction,user):
         username =user.name +"#"+user.discriminator
         msg = reaction.message
@@ -594,11 +598,14 @@ class MusicBot(discord.Client):
                     temp_str = reaction.emoji.name
                     for i in self.get_all_emojis():
                         if reaction.emoji.name == "period":
-                            await self.edit_message(msg,msg.content+".")
+                            if "." not in msg.content.split(":")[-1]:
+                                await self.edit_message(msg,msg.content+".")
                             await self.remove_reaction(msg,reaction.emoji,user)
                             break
                         elif reaction.emoji.name == i.name:
-                            await self.send_message(msg.channel,reaction.emoji.name)
+                            edit_string = msg.content.split("\n")
+                            new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+reaction.emoji.name+"\n"+edit_string[2]
+                            await self.edit_message(msg,new_string)
                             await self.remove_reaction(msg,reaction.emoji,user)
                 except:
                     temp_str = reaction.emoji
@@ -606,10 +613,18 @@ class MusicBot(discord.Client):
                     if "emoji_workouts" in self.database.data_list["users"][username]:
                         for i in self.database.data_list["users"][username]["emoji_workouts"]:
                             if reaction.emoji == str(i) and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                                await self.send_message(msg.channel,self.database.data_list["users"][username]["emoji_workouts"][i])
+                                edit_string = msg.content.split("\n")
+                                new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+self.database.data_list["users"][username]["emoji_workouts"][i]+"\n"+edit_string[2]
+                                await self.edit_message(msg,new_string)
                                 await self.remove_reaction(msg,reaction.emoji,user)
                     if reaction.emoji == "💪" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        await self.add_reaction(msg,"⚖")
+                        await self.add_reaction(msg,"📏")
+                        await self.add_reaction(msg,"🛌")
+                        await self.add_reaction(msg,"🍽")
+                        await self.add_reaction(msg,"🔥")
                         await self.add_reaction(msg,"🏃")
+                        await self.add_reaction(msg,"👟")
                         for i in self.get_all_emojis():
                             if i.name != "period":
                                 await self.add_reaction(msg,i)
@@ -617,62 +632,118 @@ class MusicBot(discord.Client):
                             for i in self.database.data_list["users"][username]["emoji_workouts"]:
                                 await self.add_reaction(msg,i)
                     elif reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.add_reaction(msg,"1⃣")
-                        await self.add_reaction(msg,"2⃣")
-                        await self.add_reaction(msg,"3⃣")
-                        await self.add_reaction(msg,"4⃣")
-                        await self.add_reaction(msg,"5⃣")
-                        await self.add_reaction(msg,"6⃣")
-                        await self.add_reaction(msg,"7⃣")
-                        await self.add_reaction(msg,"8⃣")
-                        await self.add_reaction(msg,"9⃣")
-                        await self.add_reaction(msg,"0⃣")
-                        for i in self.get_all_emojis():
-                            if i.name == "period":
-                                await self.add_reaction(msg,i)
+                        confirm_msg = await self.safe_send_message(msg.channel, "Reply with number value")
+                        response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                        if not response_msg:
+                            await self.safe_delete_message(confirm_msg)
+                            await self.send_message(msg.channel,'Ok Nevermind...')
+                        try:
+                            value = float(response_msg.content)
+                            edit_string = msg.content.split("\n")
+                            new_string = edit_string[0]+"\n"+edit_string[1]+"\n"+edit_string[2].split(":")[0]+": "+str(value)
+                            await self.edit_message(msg,new_string)
+                            await self.safe_delete_message(confirm_msg)
+                            await self.safe_delete_message(response_msg)
+                        except:
+                            await self.safe_delete_message(confirm_msg)
+                            await self.send_message(msg.channel,'Invalid Response')
+                        finally:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "🗂" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        await self.add_reaction(msg,"📋")
+                        await self.add_reaction(msg,"📈")
+                        await self.add_reaction(msg,"📊")
+                    elif reaction.emoji == "📋" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        check_date = datetime.now(timezone('US/Pacific'))
+                        check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
+                        latest_log = self.plotter.get_log_by_date(username,check_string)
+                        if not latest_log:
+                            await self.send_message(msg.channel,'```No log inputted for today!```')
+                        else:
+                            await self.send_message(msg.channel,'```Latest Log:\n'+str(json.dumps(latest_log))+'```')
+                        await self.remove_reaction(msg,reaction.emoji,user)        
+                    elif reaction.emoji == "📈" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        category = edit_string[1].split(":")[1].strip()
+                        try:
+                            value = int(float(edit_string[2].split(":")[1].strip()))
+                        except:
+                            value = 10
+                        latest = value
+                        if latest<10:
+                            latest = 10
+                        if self.plotter.generate_chart(username, category,latest) == "Empty List":
+                            await self.send_message(msg.channel,'```No data to Chart for Category: "'+category+'"```')
+                        else:
+                            await self.send_file(msg.channel,"plot_graphs/"+username+"_"+category+"_graph.png")
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "📊" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        bmi = self.bmi_calculator.get_bmi(username)
+                        if bmi == -1:
+                            await self.send_message(msg.channel,'No weight value on record!\nUse ⚖ emoji to record your most recent weight.')
+                        elif bmi == 0:
+                            await self.send_message(msg.channel,'No height value on record!\nUse 📏 emoji to record your most recent height\nUse "." as a seperator {ft}.{in}')
+                        else:
+                            await self.send_file(msg.channel,'images\BMI_Chart.jpg')
+                            await self.send_message(msg.channel,'Your bmi score is:\n'+ str(bmi)+"\nweight: "+str(self.bmi_calculator.get_weight(username))+"\nheight: "+str(self.bmi_calculator.get_height(username)))
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                        await self.cmd_emoji(user, msg,chat)
                     elif reaction.emoji == "🏃" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.send_message(msg.channel,"miles")
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"miles\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
                         await self.remove_reaction(msg,reaction.emoji,user)
-                    elif reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        for i in self.get_all_emojis():
-                            await self.add_reaction(botmsg,i)
-                    elif reaction.emoji == "1⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"1")
-                        await self.remove_reaction(msg,"1⃣",user)
-                    elif reaction.emoji == "2⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"2")
-                        await self.remove_reaction(msg,"2⃣",user)
-                    elif reaction.emoji == "3⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"3")
-                        await self.remove_reaction(msg,"3⃣",user)
-                    elif reaction.emoji == "4⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"4")
-                        await self.remove_reaction(msg,"4⃣",user)
-                    elif reaction.emoji == "5⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"5")
-                        await self.remove_reaction(msg,"5⃣",user)
-                    elif reaction.emoji == "6⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"6")
-                        await self.remove_reaction(msg,"6⃣",user)
-                    elif reaction.emoji == "7⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"7")
-                        await self.remove_reaction(msg,"7⃣",user)
-                    elif reaction.emoji == "8⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"8")
-                        await self.remove_reaction(msg,"8⃣",user)
-                    elif reaction.emoji == "9⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"9")
-                        await self.remove_reaction(msg,"9⃣",user)
-                    elif reaction.emoji == "0⃣" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.edit_message(msg,msg.content+"0")
-                        await self.remove_reaction(msg,"0⃣",user)
-                    elif reaction.emoji == "⬅" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        if msg.content[-1]!=":":
-                            await self.edit_message(msg,msg.content[:-1])
+                    elif reaction.emoji == "👟" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"steps\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
                         await self.remove_reaction(msg,reaction.emoji,user)
-                    elif reaction.emoji == "👍" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.send_message(msg.channel,"success")
+                    elif reaction.emoji == "⚖" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"weight\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
                         await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "📏" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"height\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "🛌" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"sleep\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "🍽" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"calorie_intake\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "🔥" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        edit_string = msg.content.split("\n")
+                        new_string = edit_string[0]+"\n"+edit_string[1].split(":")[0]+": "+"calorie_burn\n"+edit_string[2]
+                        await self.edit_message(msg,new_string)
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                    elif reaction.emoji == "☑" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        await self.remove_reaction(msg,reaction.emoji,user)
+                        try:
+                            edit_string = msg.content.split("\n")
+                            category = edit_string[1].split(":")[1].strip()
+                            if category == "height":
+                                value = edit_string[2].split(":")[1].strip().split(".")[0]+"'"+edit_string[2].split(":")[1].strip().split(".")[1]
+                                self.bmi_calculator.set_height(username, value)
+                                await self.send_message(msg.channel,'Sucessfully modified user height!\n    Height: '+value)
+                            else:
+                                value = float(edit_string[2].split(":")[1].strip())
+                                self.plotter.set_category_today(username,category,value)
+                                date_now = str(datetime.now(timezone('US/Pacific')).month)+"/"+str(datetime.now(timezone('US/Pacific')).day)+"/"+str(datetime.now(timezone('US/Pacific')).year)
+                                if category == "weight":
+                                    self.bmi_calculator.set_weight(username,value)
+                                await self.send_message(msg.channel,'Sucessfully modified todays log!\n    Date: '+date_now+'\n    Category: '+category+"\n    value: "+str(value))
+                        except:
+                            await self.send_message(msg.channel,'Could not modify log! Check format')
+
                         
     async def on_reaction_remove(self,reaction,user):
         username =user.name +"#"+user.discriminator
@@ -690,34 +761,30 @@ class MusicBot(discord.Client):
                     bot_object.name = "Fitness#7651"
                     bot_object.id = "368455430814564372"
                     if reaction.emoji == "💪" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        await self.remove_reaction(msg,"⚖",bot_object)
+                        await self.remove_reaction(msg,"📏",bot_object)
+                        await self.remove_reaction(msg,"🛌",bot_object)
+                        await self.remove_reaction(msg,"🍽",bot_object)
+                        await self.remove_reaction(msg,"🔥",bot_object)
                         await self.remove_reaction(msg,"🏃",bot_object)
+                        await self.remove_reaction(msg,"👟",bot_object)
                         for i in self.get_all_emojis():
                             if i.name != "period":
                                 await self.remove_reaction(msg,i,bot_object)
                         if "emoji_workouts" in self.database.data_list["users"][username]:
                             for i in self.database.data_list["users"][username]["emoji_workouts"]:
                                 await self.remove_reaction(msg,str(i),bot_object)
-                    elif reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
-                        await self.remove_reaction(msg,"1⃣",bot_object)
-                        await self.remove_reaction(msg,"1⃣",bot_object)
-                        await self.remove_reaction(msg,"2⃣",bot_object)
-                        await self.remove_reaction(msg,"3⃣",bot_object)
-                        await self.remove_reaction(msg,"4⃣",bot_object)
-                        await self.remove_reaction(msg,"5⃣",bot_object)
-                        await self.remove_reaction(msg,"6⃣",bot_object)
-                        await self.remove_reaction(msg,"7⃣",bot_object)
-                        await self.remove_reaction(msg,"8⃣",bot_object)
-                        await self.remove_reaction(msg,"9⃣",bot_object)
-                        await self.remove_reaction(msg,"0⃣",bot_object)
-                        for i in self.get_all_emojis():
-                            if i.name == "period":
-                                await self.remove_reaction(msg,i,bot_object)
+                    elif reaction.emoji == "🗂" and str(msg.id) == self.database.data_list["users"][username]["emoji_log"]:
+                        await self.remove_reaction(msg,"📋",bot_object)
+                        await self.remove_reaction(msg,"📈",bot_object)
+                        await self.remove_reaction(msg,"📊",bot_object)
 ####################################################################################
     async def on_message(self, message):
         await self.wait_until_ready()
 
         message_content = message.content.strip()
         print("[Chat]: "+message_content)
+ 
         if not message_content.startswith(self.config.command_prefix):
             return
 
