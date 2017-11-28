@@ -35,6 +35,18 @@ class Test():
         self.workout_dict["reps"] = reps
         print("Logged " + str(reps) + " reps to " + self.workout_dict["excercise"] + " workout")
 
+    def log_workout(self, username):
+            
+        for k,v in database_object.data_list.items(): #users dict
+            if type(v) is dict:
+                for user,userinfo in v.items(): #userinfo type dict
+                    for item in userinfo["log_history"]:
+                        for i in item:
+                            if i == "log" and user == username:
+                                print("Logging workout for: ", user)
+                                self.record_workout()
+                                
+                        
 
 if __name__ == '__main__':
     database_object = Database("accounts")
@@ -50,7 +62,7 @@ if __name__ == '__main__':
 
     #print(bot.workout_dict)
     
-    bot.record_workout()
+    bot.log_workout("daniel")
     print()
     
     bot.add_excercise("Chest Press")
@@ -59,20 +71,7 @@ if __name__ == '__main__':
     bot.add_weight(150)
     
     
-    bot.record_workout()
+    bot.log_workout("daniel")
     print()
     
-
-    
-    for k,v in database_object.data_list.items(): #users dict
-        if type(v) is dict:
-            for user,userinfo in v.items(): #userinfo type dict
-                for item in userinfo["log_history"]:
-                    for i in item:
-                        if i == "log":
-                            print(user)
-                            print("hi")
-                        
-                        
-                
 
