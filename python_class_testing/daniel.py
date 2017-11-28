@@ -15,6 +15,8 @@ class Test():
         self.workout_counter += 1
         print("Workout " + str(self.workout_counter) +" added to list")
         print(self.workout_list)
+        self.workout_dict = {"excercise": None, "reps": None, "sets": None, "weight": None}
+
 
         
     
@@ -68,6 +70,7 @@ if __name__ == '__main__':
                 for item in userinfo["log_history"]:
                     for i in item:
                         if i == "log":
+                            print(user)
                             print("hi")
                         
                         
