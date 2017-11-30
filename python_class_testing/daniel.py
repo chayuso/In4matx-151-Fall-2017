@@ -1,5 +1,6 @@
 #Test Class
 from database import Database
+import json
 
 class Test():
     def __init__(self,database):
@@ -8,6 +9,7 @@ class Test():
         self.workout_dict = {"excercise": None, "reps": None, "sets": None, "weight": None}
         self.workout_list = []
         self.workout_counter = 0
+        
 
         
     def record_workout(self):
@@ -16,6 +18,7 @@ class Test():
         print("Workout " + str(self.workout_counter) +" added to list")
         print(self.workout_list)
         self.workout_dict = {"excercise": None, "reps": None, "sets": None, "weight": None}
+        return self.workout_list
 
 
         
@@ -44,34 +47,45 @@ class Test():
                         for i in item:
                             if i == "log" and user == username:
                                 print("Logging workout for: ", user)
-                                self.record_workout()
+                                if self.record_workout() not in database_object.data_list["users"][username]["log_history"]:
+                                    database_object.data_list["users"][username]["log_history"].append(self.record_workout())
                                 
+    def print_json(self): #Kenny's code 
+        pretty = (self.database.data_list)
+        print(json.dumps(pretty,indent=3))
                         
 
 if __name__ == '__main__':
     database_object = Database("accounts")
     database_object.load_json_database()
+    database_object.add_user("Danienl1", str(408))
     
     
     bot = Test(database_object)
+    
     
     bot.add_excercise("Bench Press")
     bot.add_reps(10)
     bot.add_sets(3)
     bot.add_weight(150)
-
-    #print(bot.workout_dict)
-    
-    bot.log_workout("daniel")
+    bot.log_workout("Danienl1")
     print()
     
     bot.add_excercise("Chest Press")
     bot.add_reps(8)
     bot.add_sets(4)
     bot.add_weight(150)
-    
-    
-    bot.log_workout("daniel")
+    bot.log_workout("Danienl1")
     print()
     
-
+    
+        
+    bot.add_excercise("Legs")
+    bot.add_reps(8)
+    bot.add_sets(4)
+    bot.add_weight(150)
+    bot.log_workout("Danienl1")
+    print()
+    
+    bot.print_json()
+    
