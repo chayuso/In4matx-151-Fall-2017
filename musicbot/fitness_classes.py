@@ -89,11 +89,13 @@ class Database():
         """
         Returns string of user reminders.
         """
-        return_string="Reminder List for user "+username+":\n"
+        return_string=" "
         index = 1
         for reminder in self.data_list["users"][username]["reminders"]:
-            return_string+="\nReminder #"+str(index)+":\n    name: "+reminder["reminder_name"]+"\n    date: "+reminder["reminder_date"]+"\n    time: "+reminder["reminder_time"]
+            return_string+="Reminder #"+str(index)+":\n        name: "+reminder["reminder_name"]+"\n        date: "+reminder["reminder_date"]+"\n        time: "+reminder["reminder_time"]+"\n"
             index+=1
+        if return_string == " ":
+            return '    **-No pending reminders! Add with "+" emoji**'
         return return_string
 
     def add_reminder(self, username:str,date:str, hour:str, minute:str,reminder:str):
@@ -528,8 +530,6 @@ class Plotter():
         return return_string
 
     def routines_today_string(self,username:str,date:str):
-        if "routine_list" not in self.local_database.data_list["users"][username]:
-            self.create_default_routines(username)
         last_log = self.get_log_by_date(username,date)
         if "routines" not in last_log:
             return " "

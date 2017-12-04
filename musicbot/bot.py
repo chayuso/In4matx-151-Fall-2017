@@ -447,7 +447,7 @@ class MusicBot(discord.Client):
             except:
                 print("Nope")
         latest_history = self.plotter.get_log_history_string(username,latest)
-        return Response('Log History:\n'+latest_history, reply=True, delete_after=0)
+        return Response('Log History Past '+str(latest)+' Days:\n'+latest_history, reply=True, delete_after=0)
 
     async def cmd_log(self,channel, author, message, leftover_args):
         await self.update_stat_message()
@@ -534,19 +534,7 @@ class MusicBot(discord.Client):
             self.database.remove_user(username)
             return Response('Sucessfully deleted account! `%s`' % author.name, reply=True, delete_after=0)
 
-    async def cmd_reminder(self, author, message, leftover_args):
-        await self.update_stat_message()
-        username =  author.name +"#"+author.discriminator
-        if username not in self.database.data_list["users"].keys():
-            self.database.add_user(username,author.id)
-        def argcheck():
-            if not leftover_args:
-                raise exceptions.CommandError(self.database.user_reminders(username)+"\n\nReminder format.\n!reminder <name> <date> <time>\n    Example:\n    !reminder Go_to_arc! 4/5/2017 14:5")
-
-        argcheck()
-        self.database.add_reminder(username,leftover_args[1],leftover_args[2].split(":")[0],leftover_args[2].split(":")[1],leftover_args[0])
-        return Response('Sucessfully created reminder!\n    name: '+leftover_args[0]+"\n    date: "+leftover_args[1]+"\n    time: "+leftover_args[2], reply=True, delete_after=0)
-
+    
     async def reminder_loop(self):
         await self.wait_until_ready()
         while not self.is_closed:
@@ -561,6 +549,9 @@ class MusicBot(discord.Client):
                             user_object.name = self.database.data_list["users"][user]["discord_username"] #Username with #0000
                             user_object.id = self.database.data_list["users"][user]["discord_id"] #ID Number
                             await self.safe_send_message(user_object, reminder["reminder_name"])#Direct Message Reminder Name
+                            self.database.data_list["users"][user]["reminders"].remove(reminder)
+                            self.database.write_json_database()
+                            self.database.write_bkup_database()
             await asyncio.sleep(60) #check every 60 secs
 
     async def _cmd_remove_category(self, author, message,channel):
@@ -617,6 +608,24 @@ class MusicBot(discord.Client):
         await self.add_reaction(botmsg,"☑")
         await self.add_reaction(botmsg,"🔄")
         
+    async def cmd_reminder(self, author, message,channel):
+        await self.update_stat_message()
+        username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
+        if "routine_list" not in self.database.data_list["users"][username]:
+            self.exercises.create_default_routines(username)
+        Menu_UI ="Reminder List for user "+username+":\n"+self.database.user_reminders(username)
+        
+        botmsg = await self.send_message(message.channel,Menu_UI)
+        self.database.data_list["users"][username]["reminder_log"] = botmsg.id;
+        self.database.write_json_database()
+        self.database.write_bkup_database()
+        await self.add_reaction(botmsg,"➕")#plus
+        await self.add_reaction(botmsg,"➖")#minus
+        await self.add_reaction(botmsg,"🔄")
+        
+
     async def cmd_routine(self, author, message,channel):
         await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
@@ -676,6 +685,124 @@ class MusicBot(discord.Client):
         chat = msg.channel
         
         if username in self.database.data_list["users"]:
+            if "reminder_log" in self.database.data_list["users"][username]:
+                if reaction.emoji == "➕" and str(msg.id) == self.database.data_list["users"][username]["reminder_log"]:
+                    confirm_name_msg = await self.safe_send_message(msg.channel, "Reply with reminder text to log")
+                    response_name_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_name_msg:
+                        await self.safe_delete_message(confirm_name_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                        
+                    confirm_month_msg = await self.safe_send_message(msg.channel, "Reply with **month** date for reminder")
+                    response_month_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_month_msg:
+                        await self.safe_delete_message(confirm_month_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        month_value = int(response_month_msg.content)
+                        if month_value>12 or month_value<=0:
+                            await self.send_message(msg.channel,'Invalid Month Range Response')
+                            return
+                    except:
+                        await self.send_message(msg.channel,'Invalid Month Response')
+                        
+                    confirm_day_msg = await self.safe_send_message(msg.channel, "Reply with **day** date for reminder")
+                    response_day_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_day_msg:
+                        await self.safe_delete_message(confirm_day_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        day_value = int(response_day_msg.content)
+                        if day_value>31 or day_value<=0:
+                            await self.send_message(msg.channel,'Invalid Day Response')
+                            return
+                    except:
+                        await self.send_message(msg.channel,'Invalid Day Response')
+
+                    confirm_year_msg = await self.safe_send_message(msg.channel, "Reply with **year** date for reminder")
+                    response_year_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_year_msg:
+                        await self.safe_delete_message(confirm_year_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        year_value = int(response_year_msg.content)
+                        if year_value<=0:
+                            await self.send_message(msg.channel,'Invalid Year Response')
+                            return
+                    except:
+                        await self.send_message(msg.channel,'Invalid Year Response')
+
+                    confirm_hour_msg = await self.safe_send_message(msg.channel, "Reply with **hour** number for reminder")
+                    response_hour_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_hour_msg:
+                        await self.safe_delete_message(confirm_hour_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        hour_value = int(response_hour_msg.content)
+                        if hour_value<0 or hour_value>24:
+                            await self.send_message(msg.channel,'Invalid Hour Response')
+                            return
+                    except:
+                        await self.send_message(msg.channel,'Invalid Hour Response')
+                        
+                    confirm_minute_msg = await self.safe_send_message(msg.channel, "Reply with **minute** number for reminder")
+                    response_minute_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_minute_msg:
+                        await self.safe_delete_message(confirm_minute_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        minute_value = int(response_minute_msg.content)
+                        if minute_value<0 or minute_value>60:
+                            await self.send_message(msg.channel,'Invalid Minute Response')
+                            return
+                    except:
+                        await self.send_message(msg.channel,'Invalid Minute Response') 
+                    try:
+                        self.database.add_reminder(username,str(month_value)+"/"+str(day_value)+"/"+str(year_value),str(hour_value),str(minute_value),response_name_msg.content)
+                        self.database.write_json_database()
+                        self.database.write_bkup_database()
+                        await self.safe_delete_message(msg)
+                        await self.cmd_reminder(user,msg,chat)
+                    except:
+                        await self.send_message(msg.channel,'Invalid Reminder Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "➖" and str(msg.id) == self.database.data_list["users"][username]["reminder_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with reminder number to remove")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        value = int(response_msg.content)
+                        del self.database.data_list["users"][user]["reminders"][value-1]
+                        self.database.write_json_database()
+                        self.database.write_bkup_database()
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                        await self.cmd_reminder(user,msg,chat)
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["reminder_log"]:
+                        await self.cmd_reminder(user,msg,chat)
+                        await self.safe_delete_message(msg)
             if "routine_emoji_log" in self.database.data_list["users"][username]:
                 if reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["routine_emoji_log"]:
                     confirm_msg = await self.safe_send_message(msg.channel, "Reply with routine number to select")
