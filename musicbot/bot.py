@@ -35,7 +35,7 @@ from .opus_loader import load_opus_lib
 from .constants import VERSION as BOTVERSION
 from .constants import DISCORD_MSG_CHAR_LIMIT, AUDIO_CACHE_PATH
 
-from musicbot.fitness_classes import Database,Plotter,BMI_Calculator
+from musicbot.fitness_classes import Database,Exercise_Recorder,Plotter,BMI_Calculator
 from pytz import timezone
 import json
 
@@ -64,6 +64,7 @@ class MusicBot(discord.Client):
 
         #################################################################################
         self.database = Database("accounts")
+        self.exercises = Exercise_Recorder(self.database)
         self.plotter = Plotter(self.database)
         self.bmi_calculator = BMI_Calculator(self.database)
         #################################################################################
@@ -223,6 +224,10 @@ class MusicBot(discord.Client):
             if self.exit_signal:
                 raise self.exit_signal
 
+    async def update_stat_message(self):
+        game = discord.Game(name="Type !help for commands")
+        await self.change_presence(game=game)
+        
     async def logout(self):
         return await super().logout()
 
@@ -322,7 +327,7 @@ class MusicBot(discord.Client):
         If a command is specified, it prints a help message for that command.
         Otherwise, it lists the available commands.
         """
-
+        await self.update_stat_message()
         if command:
             cmd = getattr(self, 'cmd_' + command, None)
             if cmd:
@@ -350,7 +355,7 @@ class MusicBot(discord.Client):
 
             return Response(helpmsg, reply=True, delete_after=60)
 
-    async def cmd_id(self, author, user_mentions):
+    async def _cmd_id(self, author, user_mentions):
         """
         Usage:
             {command_prefix}id [@user]
@@ -363,7 +368,7 @@ class MusicBot(discord.Client):
             usr = user_mentions[0]
             return Response("%s's id is `%s`" % (usr.name, usr.id), reply=True, delete_after=35)
 
-    async def cmd_listids(self, server, author, leftover_args, cat='all'):
+    async def _cmd_listids(self, server, author, leftover_args, cat='all'):
         """
         Usage:
             {command_prefix}listids [categories]
@@ -429,18 +434,35 @@ class MusicBot(discord.Client):
         raise exceptions.TerminateSignal
 
 ####################################################################################
-    async def cmd_log(self,channel, author, message, leftover_args):
+    async def cmd_history(self,channel, author, message, leftover_args):
         username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
+        check_date = datetime.now(timezone('US/Pacific'))
+        check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
+        latest = 14
+        if leftover_args:
+            try:
+                latest = int(leftover_args[0])
+            except:
+                print("Nope")
+        latest_history = self.plotter.get_log_history_string(username,latest)
+        return Response('Log History:\n'+latest_history, reply=True, delete_after=0)
 
+    async def cmd_log(self,channel, author, message, leftover_args):
+        await self.update_stat_message()
+        username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
         def argcheck():
             if not leftover_args:
                 check_date = datetime.now(timezone('US/Pacific'))
                 check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
                 latest_log = self.plotter.get_log_by_date(username,check_string)
                 if not latest_log:
-                    raise exceptions.CommandError("No log inputted for today!")
+                    raise exceptions.CommandError("No log inputted for today! \n\nUse !log <category> <number>, !emoji, or !routine to record log")
                 else:
-                    raise exceptions.CommandError("Latest Log:\n"+str(json.dumps(latest_log)))
+                    raise exceptions.CommandError("Latest Log:\n"+str(self.plotter.get_last_log_string(username,check_string))+"\n"+self.exercises.routines_today_string(username)+"\n\nUse !log <category> <number>, !emoji, or !routine to record log")
 
         argcheck()
         self.plotter.set_category_today(username,leftover_args[0],float(leftover_args[1]))
@@ -450,11 +472,13 @@ class MusicBot(discord.Client):
         return Response('Sucessfully modified todays log!\n    Date: '+date_now+'\n    Category: '+leftover_args[0]+"\n    value: "+str(float(leftover_args[1])), reply=True, delete_after=0)
 
     async def cmd_chart(self, channel, author, message, leftover_args):
+        await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
-
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
         def argcheck():
             if not leftover_args:
-                raise exceptions.CommandError("Enter Chart Category")
+                raise exceptions.CommandError("Enter Chart Category: !chart <category>")
 
         argcheck()
         latest = 1
@@ -468,8 +492,10 @@ class MusicBot(discord.Client):
             await self.send_file(channel,"plot_graphs/"+username+"_"+leftover_args[0]+"_graph.png")
 
     async def cmd_height(self, author, channel, message, leftover_args):
+        await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
-        
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
         def argcheck():
             if not leftover_args:
                 raise exceptions.CommandError("Enter height with {'} seperator:\n!height 1'2")
@@ -480,7 +506,10 @@ class MusicBot(discord.Client):
 
         
     async def cmd_bmi(self, author, channel, message):
+        await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
         bmi = self.bmi_calculator.get_bmi(username)
         if bmi == -1:
             return Response('No weight value on recorded!\nUse !log weight # to record your most recent weight.', reply=True, delete_after=0)
@@ -489,7 +518,7 @@ class MusicBot(discord.Client):
         await self.send_file(channel,'images\BMI_Chart.jpg')
         return Response('Your bmi score is:\n'+ str(bmi)+"\nweight: "+str(self.bmi_calculator.get_weight(username))+"\nheight: "+str(self.bmi_calculator.get_height(username)), reply=True, delete_after=0)
 
-    async def cmd_signup(self, author, message):
+    async def _cmd_signup(self, author, message):
         username =  author.name +"#"+author.discriminator
         if username in self.database.data_list["users"].keys():
             return Response('You have already registered! `%s`' % author.name, reply=True, delete_after=0)
@@ -497,7 +526,7 @@ class MusicBot(discord.Client):
             self.database.add_user(username,author.id)
             return Response('Registration complete! `%s`' % author.name, reply=True, delete_after=0)
 
-    async def cmd_delete_account(self, author, message):
+    async def _cmd_delete_account(self, author, message):
         username =  author.name +"#"+author.discriminator
         if username not in self.database.data_list["users"].keys():
             return Response('You are not registered yet! `%s`' % author.name, reply=True, delete_after=0)
@@ -506,8 +535,10 @@ class MusicBot(discord.Client):
             return Response('Sucessfully deleted account! `%s`' % author.name, reply=True, delete_after=0)
 
     async def cmd_reminder(self, author, message, leftover_args):
+        await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
-
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
         def argcheck():
             if not leftover_args:
                 raise exceptions.CommandError(self.database.user_reminders(username)+"\n\nReminder format.\n!reminder <name> <date> <time>\n    Example:\n    !reminder Go_to_arc! 4/5/2017 14:5")
@@ -519,6 +550,7 @@ class MusicBot(discord.Client):
     async def reminder_loop(self):
         await self.wait_until_ready()
         while not self.is_closed:
+            await self.update_stat_message()
             for user in self.database.data_list["users"]:#user is string
                 for reminder in self.database.data_list["users"][user]["reminders"]:#reminder is dictionary in reminders array
                     date_now = str(datetime.now(timezone('US/Pacific')).month)+"/"+str(datetime.now(timezone('US/Pacific')).day)+"/"+str(datetime.now(timezone('US/Pacific')).year)
@@ -531,7 +563,7 @@ class MusicBot(discord.Client):
                             await self.safe_send_message(user_object, reminder["reminder_name"])#Direct Message Reminder Name
             await asyncio.sleep(60) #check every 60 secs
 
-    async def cmd_remove_category(self, author, message,channel):
+    async def _cmd_remove_category(self, author, message,channel):
         username =  author.name +"#"+author.discriminator
         confirm_msg = await self.safe_send_message(channel, "Reply with emoji workout")
         response_msg = await self.wait_for_message(30, author=author, channel=channel)
@@ -546,7 +578,7 @@ class MusicBot(discord.Client):
         self.database.write_bkup_database()
         await self.safe_send_message(channel, "Success!")
         
-    async def cmd_add_category(self, author, message,channel):
+    async def _cmd_add_category(self, author, message,channel):
         username =  author.name +"#"+author.discriminator
         confirm_msg = await self.safe_send_message(channel, "Reply with category name")
         response_msg = await self.wait_for_message(30, author=author, channel=channel)
@@ -570,6 +602,7 @@ class MusicBot(discord.Client):
         await self.safe_send_message(channel, "Success!")
         
     async def cmd_emoji(self, author, message,channel):
+        await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
         if username not in self.database.data_list["users"].keys():
             self.database.add_user(username,author.id)
@@ -583,6 +616,59 @@ class MusicBot(discord.Client):
         await self.add_reaction(botmsg,"🗂")
         await self.add_reaction(botmsg,"☑")
         await self.add_reaction(botmsg,"🔄")
+        
+    async def cmd_routine(self, author, message,channel):
+        await self.update_stat_message()
+        username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
+        if "routine_list" not in self.database.data_list["users"][username]:
+            self.exercises.create_default_routines(username)
+        Menu_UI ="```Routine Menu```"+self.exercises.routine_menu_string(username)
+        
+        botmsg = await self.send_message(message.channel,Menu_UI)
+        self.database.data_list["users"][username]["routine_emoji_log"] = botmsg.id;
+        self.database.write_json_database()
+        self.database.write_bkup_database()
+        await self.add_reaction(botmsg,"🔢")
+        await self.add_reaction(botmsg,"➕")#plus
+        await self.add_reaction(botmsg,"➖")#minus
+        await self.add_reaction(botmsg,"🔄")
+
+    async def _cmd_exercise_menu(self, author, message,channel,r):
+        username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
+        if "routine_list" not in self.database.data_list["users"][username]:
+            self.exercises.create_default_routines(username)
+        Menu_UI = "```Exercise Menu```"+self.exercises.exercise_menu_string(username, r)
+        
+        botmsg = await self.send_message(message.channel,Menu_UI)
+        self.database.data_list["users"][username]["exercise_emoji_log"] = botmsg.id;
+        self.database.write_json_database()
+        self.database.write_bkup_database()
+        await self.add_reaction(botmsg,"🔢")
+        await self.add_reaction(botmsg,"➕")#plus
+        await self.add_reaction(botmsg,"➖")#minus
+        await self.add_reaction(botmsg,"⬅")#back
+        await self.add_reaction(botmsg,"🔄")
+        
+    async def _cmd_set_menu(self, author, message,channel,r,e):
+        username =  author.name +"#"+author.discriminator
+        if username not in self.database.data_list["users"].keys():
+            self.database.add_user(username,author.id)
+        if "routine_list" not in self.database.data_list["users"][username]:
+            self.exercises.create_default_routines(username)
+        Menu_UI = "```Set Menu```"+self.exercises.set_menu_string(username, r,e)
+        
+        botmsg = await self.send_message(message.channel,Menu_UI)
+        self.database.data_list["users"][username]["set_emoji_log"] = botmsg.id;
+        self.database.write_json_database()
+        self.database.write_bkup_database()
+        await self.add_reaction(botmsg,"➕")#plus
+        await self.add_reaction(botmsg,"➖")#minus
+        await self.add_reaction(botmsg,"⬅")#back
+        await self.add_reaction(botmsg,"🔄")
 
     async def on_reaction_add(self,reaction,user):
         username =user.name +"#"+user.discriminator
@@ -590,6 +676,227 @@ class MusicBot(discord.Client):
         chat = msg.channel
         
         if username in self.database.data_list["users"]:
+            if "routine_emoji_log" in self.database.data_list["users"][username]:
+                if reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["routine_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with routine number to select")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        value = int(response_msg.content)
+                        await self._cmd_exercise_menu(user, msg,chat,self.database.data_list["users"][username]["routine_list"][value-1]["name"])
+                        self.database.data_list["users"][username]["last_routine"] = self.database.data_list["users"][username]["routine_list"][value-1]["name"]
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "➕" and str(msg.id) == self.database.data_list["users"][username]["routine_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with routine name to add")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        self.exercises.add_routine(username, response_msg.content)
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                        await self.cmd_routine(user,msg,chat)
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "➖" and str(msg.id) == self.database.data_list["users"][username]["routine_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with routine number to remove")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        value = int(response_msg.content)
+                        del self.database.data_list["users"][username]["routine_list"][value-1]
+                        self.database.write_json_database()
+                        self.database.write_bkup_database()
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                        await self.cmd_routine(user,msg,chat)
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["routine_emoji_log"]:
+                        await self.cmd_routine(user,msg,chat)
+                        await self.safe_delete_message(msg)
+            if "exercise_emoji_log" in self.database.data_list["users"][username]:
+                if reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["exercise_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with exercise number to select")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        value = int(response_msg.content)
+                        await self._cmd_set_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"],self.exercises.get_exercise_name_by_int(username,self.database.data_list["users"][username]["last_routine"], value-1))
+                        self.database.data_list["users"][username]["last_exercise"] = self.exercises.get_exercise_name_by_int(username,self.database.data_list["users"][username]["last_routine"], value-1)
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "➕" and str(msg.id) == self.database.data_list["users"][username]["exercise_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with exercise name to add")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        self.exercises.add_excercise_to_routine(username, self.database.data_list["users"][username]["last_routine"], response_msg.content)
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                        await self._cmd_exercise_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"])
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "➖" and str(msg.id) == self.database.data_list["users"][username]["exercise_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with exercise number to remove")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        value = int(response_msg.content)
+                        for r in self.database.data_list["users"][username]["routine_list"]:
+                            if r["name"]==self.database.data_list["users"][username]["last_routine"]:
+                                del r["exercises"][value-1]
+                        self.database.write_json_database()
+                        self.database.write_bkup_database()
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                        await self._cmd_exercise_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"])
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "⬅" and str(msg.id) == self.database.data_list["users"][username]["exercise_emoji_log"]:
+                    await self.cmd_routine(user, msg,chat)
+                    await self.safe_delete_message(msg)
+                elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["exercise_emoji_log"]:
+                        await self._cmd_exercise_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"])
+                        await self.safe_delete_message(msg)   
+            if "set_emoji_log" in self.database.data_list["users"][username]:
+                if reaction.emoji == "➕" and str(msg.id) == self.database.data_list["users"][username]["set_emoji_log"]:
+                    confirm_rep_msg = await self.safe_send_message(msg.channel, "Reply with number of reps done")
+                    response_rep_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_rep_msg:
+                        await self.safe_delete_message(confirm_rep_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        rep_value = int(response_rep_msg.content)
+                    except:
+                        await self.safe_delete_message(confirm_rep_msg)
+                        await self.send_message(msg.channel,'Invalid Rep Number Response')
+                        return
+                    confirm_weight_msg = await self.safe_send_message(msg.channel, "Reply with rep weight number")
+                    response_weight_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_weight_msg:
+                        await self.safe_delete_message(confirm_weight_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        weight_value = int(response_weight_msg.content)
+                    except:
+                        await self.safe_delete_message(confirm_weight_msg)
+                        await self.send_message(msg.channel,'Invalid Weight Number Response')
+                        return
+                    try:
+                        self.exercises.set_excercise_reps_weight_today(username, self.database.data_list["users"][username]["last_routine"],self.database.data_list["users"][username]["last_exercise"],rep_value,weight_value)
+                        await self.safe_delete_message(msg)
+                        await self._cmd_set_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"],self.database.data_list["users"][username]["last_exercise"])
+                    except:
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "➖" and str(msg.id) == self.database.data_list["users"][username]["set_emoji_log"]:
+                    confirm_msg = await self.safe_send_message(msg.channel, "Reply with set number to remove")
+                    response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_msg:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Ok Nevermind...')
+                        return
+                    try:
+                        value = int(response_msg.content)
+                        check_date = datetime.now(timezone('US/Pacific'))
+                        check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
+                        latest_log = self.plotter.get_log_by_date(username,check_string)
+                        for r in latest_log["routines"]:
+                            if r["name"]==self.database.data_list["users"][username]["last_routine"]:
+                                for e in r["exercises"]:
+                                    if e["exercise_name"]==self.database.data_list["users"][username]["last_exercise"]:
+                                        del e["sets"][value-1]
+                        self.database.write_json_database()
+                        self.database.write_bkup_database()
+                        await self.safe_delete_message(msg)
+                        await self.safe_delete_message(confirm_msg)
+                        await self.safe_delete_message(response_msg)
+                        await self._cmd_set_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"],self.database.data_list["users"][username]["last_exercise"])
+                    except:
+                        await self.safe_delete_message(confirm_msg)
+                        await self.send_message(msg.channel,'Invalid Response')
+                    finally:
+                        try:
+                            await self.remove_reaction(msg,reaction.emoji,user)
+                        except:
+                            print("Can't auto remove emoji")
+                elif reaction.emoji == "⬅" and str(msg.id) == self.database.data_list["users"][username]["set_emoji_log"]:
+                    await self._cmd_exercise_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"])
+                    await self.safe_delete_message(msg)
+                elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["set_emoji_log"]:
+                        await self._cmd_set_menu(user, msg,chat,self.database.data_list["users"][username]["last_routine"],self.database.data_list["users"][username]["last_exercise"])
+                        await self.safe_delete_message(msg)   
             if "emoji_log" in self.database.data_list["users"][username]:
                 bot_object = discord.User()
                 bot_object.name = "Fitness#7651"

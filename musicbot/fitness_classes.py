@@ -213,6 +213,240 @@ class BMI_Calculator():
         print("BMI: " + str(bmi))
         return bmi
     
+class Exercise_Recorder():
+    def __init__(self,database):
+        self.local_database = database
+
+    def reset_routines_list(self):
+        self.local_database.data_list["users"][username]["routine_list"] = []
+        temp_e = '{"name":"Chest","exercises": [{"exercise_name": "Bench","sets": []},{"exercise_name": "Incline Bench","sets": []},{"exercise_name": "Incline Dumbbell Press","sets": []},{"exercise_name": "Fly Machine","sets": []}]}'
+        json_dictionary = json.loads(temp_e)
+        self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+        temp_e = '{"name":"Back","exercises":[{"exercise_name":"Deadlift","sets":[]},{"exercise_name":"T-Bar Rows","sets":[]},{"exercise_name":"Lat Pulldowns","sets":[]},{"exercise_name":"Single-Arm Bent-Over Rows","sets":[]}]}'
+        json_dictionary = json.loads(temp_e)
+        self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+        temp_e = '{"name":"Legs","exercises":[{"exercise_name":"Squats","sets":[]},{"exercise_name":"Leg Press","sets":[]},{"exercise_name":"Leg Extension","sets":[]},{"exercise_name":"Leg Curls","sets":[]}]}'
+        json_dictionary = json.loads(temp_e)
+        self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+        temp_e = '{"name":"Shoulders","exercises":[{"exercise_name":"Seated Military Press","sets":[]},{"exercise_name":"Arnold Press","sets":[]},{"exercise_name":"Front Raise","sets":[]},{"exercise_name":"Seated Reverse Flys","sets":[]},{"exercise_name":"Lateral Raise","sets":[]}]}'
+        json_dictionary = json.loads(temp_e)
+        self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+
+    def create_default_routines(self, username:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            self.local_database.data_list["users"][username]["routine_list"] = []
+            temp_e = '{"name":"Chest","exercises": [{"exercise_name": "Bench","sets": []},{"exercise_name": "Incline Bench","sets": []},{"exercise_name": "Incline Dumbbell Press","sets": []},{"exercise_name": "Fly Machine","sets": []}]}'
+            json_dictionary = json.loads(temp_e)
+            self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+            temp_e = '{"name":"Back","exercises":[{"exercise_name":"Deadlift","sets":[]},{"exercise_name":"T-Bar Rows","sets":[]},{"exercise_name":"Lat Pulldowns","sets":[]},{"exercise_name":"Single-Arm Bent-Over Rows","sets":[]}]}'
+            json_dictionary = json.loads(temp_e)
+            self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+            temp_e = '{"name":"Legs","exercises":[{"exercise_name":"Squats","sets":[]},{"exercise_name":"Leg Press","sets":[]},{"exercise_name":"Leg Extension","sets":[]},{"exercise_name":"Leg Curls","sets":[]}]}'
+            json_dictionary = json.loads(temp_e)
+            self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+            temp_e = '{"name":"Shoulders","exercises":[{"exercise_name":"Seated Military Press","sets":[]},{"exercise_name":"Arnold Press","sets":[]},{"exercise_name":"Front Raise","sets":[]},{"exercise_name":"Seated Reverse Flys","sets":[]},{"exercise_name":"Lateral Raise","sets":[]}]}'
+            json_dictionary = json.loads(temp_e)
+            self.local_database.data_list["users"][username]["routine_list"].append(json_dictionary)
+            
+    def routine_menu_string(self, username:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            self.create_default_routines(username)
+        return_string = ""
+        r_num = 1
+        for r in self.local_database.data_list["users"][username]["routine_list"]:
+            return_string+="Routine #"+str(r_num)+"- "+r["name"]+"\n"
+            r_num+=1
+        return return_string
+    
+    def get_exercise_name_by_int(self, username:str,routine:str, num:int):
+        for r in self.local_database.data_list["users"][username]["routine_list"]:
+            if r["name"]== routine:
+                return r["exercises"][num]["exercise_name"]
+        return None
+        
+    def exercise_menu_string(self, username:str,routine:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            self.create_default_routines(username)
+        return_string = "__**Routine**__ - "+routine+"\n"
+        for r in self.local_database.data_list["users"][username]["routine_list"]:
+            if r["name"]== routine:
+                e_num = 1
+                if len(r["exercises"]) == 0:
+                    return_string+="        No exercises inputed. Add Exercises."
+                for e in r["exercises"]:
+                    return_string+="    Exercise #"+str(e_num)+"- "+e["exercise_name"]+"\n"
+                    e_num+=1
+        return return_string
+    
+    def set_menu_string(self, username:str,routine:str,exercise:str):
+        last_log = self.local_database.data_list["users"][username]["log_history"][-1]
+        now = datetime.now(timezone('US/Pacific'))
+        if last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
+            if "routines" not in last_log:
+                return_string = "__**Routine**__ - "+routine+"\n"+"    __**Exercise**__ - "+exercise+"\n"
+                for r in self.local_database.data_list["users"][username]["routine_list"]:
+                    if r["name"]== routine:
+                        for e in r["exercises"]:
+                            if e["exercise_name"]== exercise:
+                                s_num = 1
+                                if len(e["sets"]) == 0:
+                                    return_string+="        No sets inputed. Add Sets."
+                                for s in e["sets"]:
+                                    return_string+="        Set #"+str(s_num)+"- Reps: "+str(s["reps"])+", Weight: "+str(s["weight"])+"\n"
+                                    s_num+=1
+                return return_string
+            return_string = "__**Routine**__ - "+routine+"\n"+"    __**Exercise**__ - "+exercise+"\n"
+
+            for r in last_log["routines"]:
+                if r["name"]== routine:
+                    for e in r["exercises"]:
+                        if e["exercise_name"]== exercise:
+                            s_num = 1
+                            if len(e["sets"]) == 0:
+                                return_string+="        No sets inputed. Add Sets."
+                            for s in e["sets"]:
+                                return_string+="        Set #"+str(s_num)+"- Reps: "+str(s["reps"])+", Weight: "+str(s["weight"])+"\n"
+                                s_num+=1
+            return return_string
+            
+        else:
+            return_string = "__**Routine**__ - "+routine+"\n"+"    __**Exercise**__ - "+exercise+"\n"
+            for r in self.local_database.data_list["users"][username]["routine_list"]:
+                if r["name"]== routine:
+                    for e in r["exercises"]:
+                        if e["exercise_name"]== exercise:
+                            s_num = 1
+                            if len(e["sets"]) == 0:
+                                return_string+="        No sets inputed for today. Add Sets."
+                            for s in e["sets"]:
+                                return_string+="        Set #"+str(s_num)+"- Reps: "+str(s["reps"])+", Weight: "+str(s["weight"])+"\n"
+                                s_num+=1
+            return return_string
+    
+    def routines_today_string(self, username:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            self.create_default_routines(username)
+        last_log = self.local_database.data_list["users"][username]["log_history"][-1]
+        now = datetime.now(timezone('US/Pacific'))
+        if last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
+            if "routines" not in last_log:
+                return " "
+            return_string = ""
+            r_num = 1
+            for r in last_log["routines"]:
+                return_string+="Routine #"+str(r_num)+"- "+r["name"]+"\n"
+                e_num = 1
+                for e in r["exercises"]:
+                    if len(e["sets"]) !=0:
+                        return_string+="    Exercise #"+str(e_num)+"- "+e["exercise_name"]+"\n"
+                        s_num = 1
+                        for s in e["sets"]:
+                            return_string+="        Set #"+str(s_num)+"- Reps: "+str(s["reps"])+", Weight: "+str(s["weight"])+"\n"
+                            s_num+=1
+                        e_num+=1
+                r_num+=1
+            return return_string
+            
+        else:
+            return " "
+        
+    def add_routine(self, username:str, routine:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            self.create_default_routines(username)
+        else:
+            for i in self.local_database.data_list["users"][username]["routine_list"]:
+                if i["name"]==routine:
+                    return 1
+        temp_routine = {"name": routine, "exercises": []}
+        self.local_database.data_list["users"][username]["routine_list"].append(temp_routine)
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+
+    def get_routine(self, username:str, routine:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            return None
+        else:
+            for i in self.local_database.data_list["users"][username]["routine_list"]:
+                if i["name"]==routine:
+                    return i
+        return None
+        
+    def add_excercise_to_routine(self, username:str, routine:str,exercise:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            return 1
+        else:
+            temp_ex = {"exercise_name": exercise,"sets": []}
+            for r in self.local_database.data_list["users"][username]["routine_list"]:
+                if r["name"]==routine:
+                    for e in r["exercises"]:
+                        if e["exercise_name"] == exercise:
+                            return -2
+                    r["exercises"].append(temp_ex)
+                    self.local_database.write_json_database()
+                    self.local_database.write_bkup_database()
+                    return 0
+            self.add_routine(username,routine)
+            self.add_excercise(username, routine,exercise,sets)
+            return -1
+        
+    def set_excercise_reps_weight_today(self, username:str, routine:str,exercise:str,reps:int,weight:int):
+        last_log = self.local_database.data_list["users"][username]["log_history"][-1]
+        now = datetime.now(timezone('US/Pacific'))
+        if last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
+            if "routines" not in last_log:
+                last_log["routines"] = []
+            if self.get_routine(username, routine):
+                for r in last_log["routines"]:
+                    if r["name"]==routine:
+                        for e in r["exercises"]:
+                            if e["exercise_name"]==exercise:
+                                e["sets"].append({"reps":int(reps),"weight":int(weight)})
+            else:
+                return 1
+        else:
+            temp_log = '{"calorie_intake":0,"calorie_burn":0,"miles":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
+            json_dictionary = json.loads(temp_log)
+            json_dictionary["routines"] = []
+            if self.get_routine(username, routine):
+                json_dictionary["routines"].append(self.get_routine(username, routine))
+                for r in json_dictionary["routines"]:
+                    if r["name"]==routine:
+                        for e in r["exercises"]:
+                            if e["exercise_name"]==exercise:
+                                e["sets"].append({"reps":int(reps),"weight":int(weight)})
+            else:
+                return 1
+            self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
+            
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+        
+    def add_routine_today(self,username:str,routine:str):
+        last_log = self.local_database.data_list["users"][username]["log_history"][-1]
+        now = datetime.now(timezone('US/Pacific'))
+        if last_log["date"] == str(now.month)+'/'+str(now.day)+'/'+str(now.year):
+            if "routines" not in last_log:
+                last_log["routines"] = []
+            if self.get_routine(username, routine):
+                for r in last_log["routines"]:
+                    if r["name"] == routine:
+                        return -1
+                last_log["routines"].append(self.get_routine(username, routine))
+            else:
+                return 1
+        else:
+            temp_log = '{"calorie_intake":0,"calorie_burn":0,"miles":0,"date":"'+str(now.month)+'/'+str(now.day)+'/'+str(now.year)+'"}'
+            json_dictionary = json.loads(temp_log)
+            json_dictionary["routines"] = []
+            if self.get_routine(username, routine):
+                json_dictionary["routines"].append(self.get_routine(username, routine))
+            else:
+                return 1
+            self.local_database.data_list["users"][username]["log_history"].append(json_dictionary)
+            
+        self.local_database.write_json_database()
+        self.local_database.write_bkup_database()
+        
 class Plotter():
     def __init__(self,database):
         
@@ -221,7 +455,7 @@ class Plotter():
     def print_json(self):
         pretty = (self.local_database.data_list)
         print(json.dumps(pretty,indent=3))
-
+        
     def get_category_by_date(self,username:str,category:str,date:str):
         """
         Compatible with
@@ -241,8 +475,17 @@ class Plotter():
         for log in self.local_database.data_list["users"][username]["log_history"]:
             if log["date"]==date:
                 return log
-        return None 
-
+        return None
+    
+    def get_last_log_string(self,username,date:str):
+        latest_log = self.get_log_by_date(username,date)
+        return_string = ""
+        return_string+="Date: "+str(date)+"\n"
+        for key in latest_log:
+            if key!="routines" and key!="date" and key!="log" :
+                if latest_log[key]!=0:
+                    return_string+="    "+str(key)+": "+str(latest_log[key])+"\n"
+        return return_string
     def set_category_today(self,username:str,category:str,value:int,test_mode=False,test_increment=0):
         """
         Compatible with
@@ -265,7 +508,46 @@ class Plotter():
 
         self.local_database.write_json_database()
         self.local_database.write_bkup_database()
-    
+        
+    def get_log_history_string(self,username:str,most_recent:int):
+        return_string = "__**Log History:**__\n"
+        date_list = []
+        check_date = datetime.now(timezone('US/Pacific'))-timedelta(days=most_recent)
+        n = 1
+        for i in range(0,most_recent+1):
+            check_string = str(check_date.month)+"/"+str(check_date.day)+"/"+str(check_date.year)
+            log_entry = self.get_log_by_date(username,check_string)
+            if log_entry:
+                return_string += "Log #"+str(n)+":\n"
+                n+=1
+                date_list.append(log_entry["date"])
+                return_string +=self.get_last_log_string(username,check_string)+"\n"+self.routines_today_string(username,check_string)+"__________\n"
+            check_date += timedelta(days=1)
+        if not date_list:
+            return "No log history for past "+str(most_recent)+" days"
+        return return_string
+
+    def routines_today_string(self,username:str,date:str):
+        if "routine_list" not in self.local_database.data_list["users"][username]:
+            self.create_default_routines(username)
+        last_log = self.get_log_by_date(username,date)
+        if "routines" not in last_log:
+            return " "
+        return_string = " "
+        r_num = 1
+        for r in last_log["routines"]:
+            return_string+="Routine #"+str(r_num)+"- "+r["name"]+"\n"
+            e_num = 1
+            for e in r["exercises"]:
+                if len(e["sets"]) !=0:
+                    return_string+="    Exercise #"+str(e_num)+"- "+e["exercise_name"]+"\n"
+                    s_num = 1
+                    for s in e["sets"]:
+                        return_string+="        Set #"+str(s_num)+"- Reps: "+str(s["reps"])+", Weight: "+str(s["weight"])+"\n"
+                        s_num+=1
+                    e_num+=1
+            r_num+=1
+        return return_string    
     def generate_chart(self,username:str, category:str,most_recent:int,test_num=0):
         #test_num increments day of testing if added dates up to 86
         #program will think to test up from most_recent until the tested increment
