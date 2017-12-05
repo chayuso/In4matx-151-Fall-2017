@@ -608,7 +608,7 @@ class MusicBot(discord.Client):
         await self.add_reaction(botmsg,"☑")
         await self.add_reaction(botmsg,"🔄")
         
-    async def cmd_reminder(self, author, message,channel):
+    async def cmd_reminders(self, author, message,channel):
         await self.update_stat_message()
         username =  author.name +"#"+author.discriminator
         if username not in self.database.data_list["users"].keys():
@@ -704,95 +704,93 @@ class MusicBot(discord.Client):
                         if month_value>12 or month_value<=0:
                             await self.send_message(msg.channel,'Invalid Month Range Response')
                             return
+                        
+                        confirm_day_msg = await self.safe_send_message(msg.channel, "Reply with **day** date for reminder")
+                        response_day_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                        if not response_day_msg:
+                            await self.safe_delete_message(confirm_day_msg)
+                            await self.send_message(msg.channel,'Ok Nevermind...')
+                            return
+                        try:
+                            day_value = int(response_day_msg.content)
+                            if day_value>31 or day_value<=0:
+                                await self.send_message(msg.channel,'Invalid Day Response')
+                                return
+                            
+                            confirm_ampm_msg = await self.safe_send_message(msg.channel, "Reply with text **am** or **pm** time for reminder")
+                            response_ampm_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                            if not response_ampm_msg:
+                                await self.safe_delete_message(confirm_ampm_msg)
+                                await self.send_message(msg.channel,'Ok Nevermind...')
+                                return
+                            try:
+                                ampm_value = "am"
+                                if response_ampm_msg.content.lower().strip() == "am":
+                                    ampm_value = "am"
+                                elif response_ampm_msg.content.lower().strip() == "pm":
+                                    ampm_value = "pm"
+                                else:
+                                    await self.send_message(msg.channel,'Invalid am/pm Response')
+                                    return
+                                confirm_hour_msg = await self.safe_send_message(msg.channel, "Reply with **hour** number for reminder")
+                                response_hour_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                                if not response_hour_msg:
+                                    await self.safe_delete_message(confirm_hour_msg)
+                                    await self.send_message(msg.channel,'Ok Nevermind...')
+                                    return
+                                try:
+                                    hour_value = int(response_hour_msg.content)
+                                    if hour_value<0 or hour_value>12:
+                                        await self.send_message(msg.channel,'Invalid Hour Response')
+                                        return
+                                    confirm_minute_msg = await self.safe_send_message(msg.channel, "Reply with **minute** number for reminder")
+                                    response_minute_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                                    if not response_minute_msg:
+                                        await self.safe_delete_message(confirm_minute_msg)
+                                        await self.send_message(msg.channel,'Ok Nevermind...')
+                                        return
+                                    try:
+                                        minute_value = int(response_minute_msg.content)
+                                        if minute_value<0 or minute_value>60:
+                                            await self.send_message(msg.channel,'Invalid Minute Response')
+                                            return
+                                        try:
+                                            year_value = int(datetime.now(timezone('US/Pacific')).year)
+                                            if month_value < int(datetime.now(timezone('US/Pacific')).month):
+                                                year_value +=1
+                                            elif month_value == int(datetime.now(timezone('US/Pacific')).month):
+                                                if day_value < int(datetime.now(timezone('US/Pacific')).day):
+                                                    year_value +=1
+                                            if ampm_value == "pm":
+                                                if hour_value!=12:
+                                                    hour_value+=12
+                                                if hour_value==0:
+                                                    hour_value+=12
+                                            if ampm_value == "am":
+                                                if hour_value==12:
+                                                    hour_value-=12
+                                            self.database.add_reminder(username,str(month_value)+"/"+str(day_value)+"/"+str(year_value),str(hour_value),str(minute_value),response_name_msg.content)
+                                            self.database.write_json_database()
+                                            self.database.write_bkup_database()
+                                            await self.safe_delete_message(msg)
+                                            await self.cmd_reminders(user,msg,chat)
+                                        except:
+                                            await self.send_message(msg.channel,'Invalid Reminder Response')
+                                    except:
+                                        await self.send_message(msg.channel,'Invalid Minute Response') 
+                                except:
+                                    await self.send_message(msg.channel,'Invalid Hour Response')
+                            except:
+                                await self.send_message(msg.channel,'Invalid am/pm Response')
+                        except:
+                            await self.send_message(msg.channel,'Invalid Day Response')
                     except:
                         await self.send_message(msg.channel,'Invalid Month Response')
-                        
-                    confirm_day_msg = await self.safe_send_message(msg.channel, "Reply with **day** date for reminder")
-                    response_day_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
-                    if not response_day_msg:
-                        await self.safe_delete_message(confirm_day_msg)
-                        await self.send_message(msg.channel,'Ok Nevermind...')
-                        return
+                    
                     try:
-                        day_value = int(response_day_msg.content)
-                        if day_value>31 or day_value<=0:
-                            await self.send_message(msg.channel,'Invalid Day Response')
-                            return
+                        await self.remove_reaction(msg,reaction.emoji,user)
                     except:
-                        await self.send_message(msg.channel,'Invalid Day Response')
-
-                    confirm_ampm_msg = await self.safe_send_message(msg.channel, "Reply with text **am** or **pm** time for reminder")
-                    response_ampm_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
-                    if not response_ampm_msg:
-                        await self.safe_delete_message(confirm_ampm_msg)
-                        await self.send_message(msg.channel,'Ok Nevermind...')
-                        return
-                    try:
-                        ampm_value = "am"
-                        if response_ampm_msg.content.lower().strip() == "am":
-                            ampm_value = "am"
-                        elif response_ampm_msg.content.lower().strip() == "pm":
-                            ampm_value = "pm"
-                        else:
-                            await self.send_message(msg.channel,'Invalid am/pm Response')
-                            return
-                    except:
-                        await self.send_message(msg.channel,'Invalid am/pm Response')
-
-                    confirm_hour_msg = await self.safe_send_message(msg.channel, "Reply with **hour** number for reminder")
-                    response_hour_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
-                    if not response_hour_msg:
-                        await self.safe_delete_message(confirm_hour_msg)
-                        await self.send_message(msg.channel,'Ok Nevermind...')
-                        return
-                    try:
-                        hour_value = int(response_hour_msg.content)
-                        if hour_value<0 or hour_value>12:
-                            await self.send_message(msg.channel,'Invalid Hour Response')
-                            return
-                    except:
-                        await self.send_message(msg.channel,'Invalid Hour Response')
-                        
-                    confirm_minute_msg = await self.safe_send_message(msg.channel, "Reply with **minute** number for reminder")
-                    response_minute_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
-                    if not response_minute_msg:
-                        await self.safe_delete_message(confirm_minute_msg)
-                        await self.send_message(msg.channel,'Ok Nevermind...')
-                        return
-                    try:
-                        minute_value = int(response_minute_msg.content)
-                        if minute_value<0 or minute_value>60:
-                            await self.send_message(msg.channel,'Invalid Minute Response')
-                            return
-                    except:
-                        await self.send_message(msg.channel,'Invalid Minute Response') 
-                    try:
-                        year_value = int(datetime.now(timezone('US/Pacific')).year)
-                        if month_value < int(datetime.now(timezone('US/Pacific')).month):
-                            year_value +=1
-                        elif month_value == int(datetime.now(timezone('US/Pacific')).month):
-                            if day_value < int(datetime.now(timezone('US/Pacific')).day):
-                                year_value +=1
-                        if ampm_value == "pm":
-                            if hour_value!=12:
-                                hour_value+=12
-                            if hour_value==0:
-                                hour_value+=12
-                        if ampm_value == "am":
-                            if hour_value==12:
-                                hour_value-=12
-                        self.database.add_reminder(username,str(month_value)+"/"+str(day_value)+"/"+str(year_value),str(hour_value),str(minute_value),response_name_msg.content)
-                        self.database.write_json_database()
-                        self.database.write_bkup_database()
-                        await self.safe_delete_message(msg)
-                        await self.cmd_reminder(user,msg,chat)
-                    except:
-                        await self.send_message(msg.channel,'Invalid Reminder Response')
-                    finally:
-                        try:
-                            await self.remove_reaction(msg,reaction.emoji,user)
-                        except:
-                            print("Can't auto remove emoji")
+                        print("Can't auto remove emoji")
                 elif reaction.emoji == "➖" and str(msg.id) == self.database.data_list["users"][username]["reminder_log"]:
                     confirm_msg = await self.safe_send_message(msg.channel, "Reply with reminder number to remove")
                     response_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
@@ -808,7 +806,7 @@ class MusicBot(discord.Client):
                         await self.safe_delete_message(msg)
                         await self.safe_delete_message(confirm_msg)
                         await self.safe_delete_message(response_msg)
-                        await self.cmd_reminder(user,msg,chat)
+                        await self.cmd_reminders(user,msg,chat)
                     except:
                         await self.safe_delete_message(confirm_msg)
                         await self.send_message(msg.channel,'Invalid Response')
@@ -818,7 +816,7 @@ class MusicBot(discord.Client):
                         except:
                             print("Can't auto remove emoji")
                 elif reaction.emoji == "🔄" and str(msg.id) == self.database.data_list["users"][username]["reminder_log"]:
-                        await self.cmd_reminder(user,msg,chat)
+                        await self.cmd_reminders(user,msg,chat)
                         await self.safe_delete_message(msg)
             if "routine_emoji_log" in self.database.data_list["users"][username]:
                 if reaction.emoji == "🔢" and str(msg.id) == self.database.data_list["users"][username]["routine_emoji_log"]:
