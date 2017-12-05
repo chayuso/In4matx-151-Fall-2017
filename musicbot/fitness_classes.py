@@ -92,7 +92,28 @@ class Database():
         return_string=" "
         index = 1
         for reminder in self.data_list["users"][username]["reminders"]:
-            return_string+="Reminder #"+str(index)+":\n        name: "+reminder["reminder_name"]+"\n        date: "+reminder["reminder_date"]+"\n        time: "+reminder["reminder_time"]+"\n"
+            return_string+="Reminder #"+str(index)+":\n        name: "+reminder["reminder_name"]+"\n        date: "+reminder["reminder_date"]+"\n        "
+            return_string+="time: "+reminder["reminder_time"]+"\n"
+            if int(reminder["reminder_time"].split(':')[0])==12:
+                if int(reminder["reminder_time"].split(':')[1])<10:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0]))+":0"+str(int(reminder["reminder_time"].split(':')[1]))+" PM\n"
+                else:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0]))+":"+str(int(reminder["reminder_time"].split(':')[1]))+" PM\n"
+            elif int(reminder["reminder_time"].split(':')[0])>12:
+                if int(reminder["reminder_time"].split(':')[1])<10:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0]))+":0"+str(int(reminder["reminder_time"].split(':')[1]))+" PM\n"
+                else:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0])-12)+":"+str(int(reminder["reminder_time"].split(':')[1]))+" PM\n"
+            elif int(reminder["reminder_time"].split(':')[0])==0:
+                if int(reminder["reminder_time"].split(':')[1])<10:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0]))+":0"+str(int(reminder["reminder_time"].split(':')[1]))+" PM\n"
+                else:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0])+12)+":"+str(int(reminder["reminder_time"].split(':')[1]))+" AM\n"
+            else:
+                if int(reminder["reminder_time"].split(':')[1])<10:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0]))+":0"+str(int(reminder["reminder_time"].split(':')[1]))+" PM\n"
+                else:
+                    return_string+="time: "+str(int(reminder["reminder_time"].split(':')[0]))+":"+str(int(reminder["reminder_time"].split(':')[1]))+" AM\n"
             index+=1
         if return_string == " ":
             return '    **-No pending reminders! Add with "+" emoji**'

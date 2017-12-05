@@ -624,7 +624,6 @@ class MusicBot(discord.Client):
         await self.add_reaction(botmsg,"➕")#plus
         await self.add_reaction(botmsg,"➖")#minus
         await self.add_reaction(botmsg,"🔄")
-        
 
     async def cmd_routine(self, author, message,channel):
         await self.update_stat_message()
@@ -722,19 +721,23 @@ class MusicBot(discord.Client):
                     except:
                         await self.send_message(msg.channel,'Invalid Day Response')
 
-                    confirm_year_msg = await self.safe_send_message(msg.channel, "Reply with **year** date for reminder")
-                    response_year_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
-                    if not response_year_msg:
-                        await self.safe_delete_message(confirm_year_msg)
+                    confirm_ampm_msg = await self.safe_send_message(msg.channel, "Reply with text **am** or **pm** time for reminder")
+                    response_ampm_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
+                    if not response_ampm_msg:
+                        await self.safe_delete_message(confirm_ampm_msg)
                         await self.send_message(msg.channel,'Ok Nevermind...')
                         return
                     try:
-                        year_value = int(response_year_msg.content)
-                        if year_value<=0:
-                            await self.send_message(msg.channel,'Invalid Year Response')
+                        ampm_value = "am"
+                        if response_ampm_msg.content.lower().strip() == "am":
+                            ampm_value = "am"
+                        elif response_ampm_msg.content.lower().strip() == "pm":
+                            ampm_value = "pm"
+                        else:
+                            await self.send_message(msg.channel,'Invalid am/pm Response')
                             return
                     except:
-                        await self.send_message(msg.channel,'Invalid Year Response')
+                        await self.send_message(msg.channel,'Invalid am/pm Response')
 
                     confirm_hour_msg = await self.safe_send_message(msg.channel, "Reply with **hour** number for reminder")
                     response_hour_msg = await self.wait_for_message(30, author=user, channel=msg.channel)
@@ -744,7 +747,7 @@ class MusicBot(discord.Client):
                         return
                     try:
                         hour_value = int(response_hour_msg.content)
-                        if hour_value<0 or hour_value>24:
+                        if hour_value<0 or hour_value>12:
                             await self.send_message(msg.channel,'Invalid Hour Response')
                             return
                     except:
@@ -764,6 +767,20 @@ class MusicBot(discord.Client):
                     except:
                         await self.send_message(msg.channel,'Invalid Minute Response') 
                     try:
+                        year_value = int(datetime.now(timezone('US/Pacific')).year)
+                        if month_value < int(datetime.now(timezone('US/Pacific')).month):
+                            year_value +=1
+                        elif month_value == int(datetime.now(timezone('US/Pacific')).month):
+                            if day_value < int(datetime.now(timezone('US/Pacific')).day):
+                                year_value +=1
+                        if ampm_value == "pm":
+                            if hour_value!=12:
+                                hour_value+=12
+                            if hour_value==0:
+                                hour_value+=12
+                        if ampm_value == "am":
+                            if hour_value==12:
+                                hour_value-=12
                         self.database.add_reminder(username,str(month_value)+"/"+str(day_value)+"/"+str(year_value),str(hour_value),str(minute_value),response_name_msg.content)
                         self.database.write_json_database()
                         self.database.write_bkup_database()
@@ -785,7 +802,7 @@ class MusicBot(discord.Client):
                         return
                     try:
                         value = int(response_msg.content)
-                        del self.database.data_list["users"][user]["reminders"][value-1]
+                        del self.database.data_list["users"][username]["reminders"][value-1]
                         self.database.write_json_database()
                         self.database.write_bkup_database()
                         await self.safe_delete_message(msg)
